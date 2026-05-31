@@ -1,0 +1,21 @@
+# Core data & math
+numpy>=1.26.0
+pandas>=2.2.0
+scipy>=1.13.0
+
+# Exchange connectivity
+ccxt>=4.3.0
+
+# Dashboard
+streamlit>=1.35.0
+plotly>=5.22.0
+
+# Data storage
+pyarrow>=16.0.0   # parquet support for pandas
+
+# Testing
+pytest>=8.2.0
+pytest-cov>=5.0.0
+
+# Utilities
+python-dateutil>=2.9.0

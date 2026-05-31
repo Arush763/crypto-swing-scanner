@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Swing Scanner</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --green: #3fb950;
+    --red: #f85149; --yellow: #d29922; --blue: #58a6ff;
+    --purple: #bc8cff; --orange: #ffa657;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace; font-size: 14px; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 20px; font-weight: 600; }
+  #status { font-size: 12px; color: var(--muted); margin-left: auto; }
+  #status span { color: var(--green); }
+  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 8px 16px; cursor: pointer; border-radius: 6px 6px 0 0; color: var(--muted); font-size: 13px; border: 1px solid transparent; border-bottom: none; }
+  .tab.active { background: var(--surface); border-color: var(--border); color: var(--text); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); letter-spacing: .4px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #21262d; font-size: 13px; }
+  tr:hover td { background: #1c2128; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-strong  { background: #1a4731; color: var(--green); }
+  .badge-standard { background: #1c2a1e; color: #7ee787; }
+  .badge-breakout { background: #2d1f03; color: var(--orange); }
+  .badge-retest   { background: #0d2b45; color: var(--blue); }
+  .badge-squeeze  { background: #2a1f45; color: var(--purple); }
+  .score-bar { display: flex; align-items: center; gap: 8px; }
+  .bar { height: 6px; border-radius: 3px; background: var(--border); width: 80px; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .signal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .signal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .signal-symbol { font-size: 18px; font-weight: 700; }
+  .signal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .signal-item { background: #1c2128; border-radius: 6px; padding: 10px; }
+  .signal-item-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+  .signal-item-value { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .green { color: var(--green); } .red { color: var(--red); } .blue { color: var(--blue); } .yellow { color: var(--yellow); }
+  .empty { color: var(--muted); text-align: center; padding: 40px; font-size: 15px; }
+  #last-updated { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:22px">📈</span>
+  <h1>Crypto Swing Scanner</h1>
+  <div id="status">Last scan: <span id="scan-time">—</span></div>
+</header>
+
+<main>
+  <div id="last-updated"></div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Assets Scanned</div>
+      <div class="stat-value blue" id="stat-assets">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Signals</div>
+      <div class="stat-value green" id="stat-signals">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Scan Duration</div>
+      <div class="stat-value" id="stat-duration">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Scan Date</div>
+      <div class="stat-value" style="font-size:16px" id="stat-date">—</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('signals')">🚨 Signals</div>
+    <div class="tab" onclick="showTab('leaderboard')">🏆 Leaderboard</div>
+  </div>
+
+  <div id="tab-signals" class="panel active">
+    <div id="signals-container"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div id="tab-leaderboard" class="panel">
+    <table id="leaderboard-table">
+      <thead><tr>
+        <th>#</th><th>Symbol</th><th>Score</th>
+        <th>Trend</th><th>Momentum</th><th>Liquidity</th>
+        <th>Flags</th><th>Price</th>
+      </tr></thead>
+      <tbody id="leaderboard-body"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['signals','leaderboard'][i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function scoreColor(s) {
+  if (s >= 90) return '#3fb950';
+  if (s >= 80) return '#56d364';
+  if (s >= 70) return '#ffa657';
+  return '#8b949e';
+}
+
+function miniBar(val, max, color) {
+  const pct = Math.min(100, (val / max) * 100);
+  return `<div class="score-bar"><div class="bar"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div><span>${val.toFixed(0)}</span></div>`;
+}
+
+async function load() {
+  try {
+    const r = await fetch('results.json?t=' + Date.now());
+    if (!r.ok) throw new Error('No results yet');
+    const d = await r.json();
+
+    const dt = new Date(d.scan_time);
+    document.getElementById('scan-time').textContent = dt.toUTCString();
+    document.getElementById('stat-assets').textContent = d.assets_scanned;
+    document.getElementById('stat-signals').textContent = d.signals_count;
+    document.getElementById('stat-duration').textContent = d.duration_s + 's';
+    document.getElementById('stat-date').textContent = dt.toLocaleDateString();
+    document.getElementById('last-updated').textContent = 'Data as of ' + dt.toUTCString();
+
+    // Signals
+    const sc = document.getElementById('signals-container');
+    if (!d.signals || d.signals.length === 0) {
+      sc.innerHTML = '<div class="empty">⚪ No signals this cycle — markets consolidating.</div>';
+    } else {
+      sc.innerHTML = d.signals.map(s => `
+        <div class="signal-card">
+          <div class="signal-header">
+            <span class="signal-symbol">${s.symbol}</span>
+            <span class="badge badge-${s.strength}">${s.strength.toUpperCase()}</span>
+            <span class="badge badge-${s.type.replace('_','-')}">${s.type.replace(/_/g,' ')}</span>
+            <span style="margin-left:auto;font-size:22px;font-weight:700;color:${scoreColor(s.score)}">${s.score.toFixed(0)}</span>
+          </div>
+          <div class="signal-grid">
+            <div class="signal-item"><div class="signal-item-label">Price</div><div class="signal-item-value">$${s.price.toPrecision(5)}</div></div>
+            <div class="signal-item"><div class="signal-item-label">Entry Zone</div><div class="signal-item-value green">$${s.entry_low.toPrecision(4)} – $${s.entry_high.toPrecision(4)}</div></div>
+            <div class="signal-item"><div class="signal-item-label">Stop Loss</div><div class="signal-item-value red">$${s.stop_loss.toPrecision(4)}</div></div>
+            <div class="signal-item"><div class="signal-item-label">Risk / Reward</div><div class="signal-item-value yellow">${s.risk_pct.toFixed(1)}% / ${s.rr.toFixed(2)}x</div></div>
+            <div class="signal-item"><div class="signal-item-label">Trend</div><div class="signal-item-value">${miniBar(s.trend_score,100,'#58a6ff')}</div></div>
+            <div class="signal-item"><div class="signal-item-label">Momentum</div><div class="signal-item-value">${miniBar(s.momentum_score,100,'#3fb950')}</div></div>
+          </div>
+        </div>`).join('');
+    }
+
+    // Leaderboard
+    const lb = document.getElementById('leaderboard-body');
+    lb.innerHTML = (d.leaderboard || []).map((row, i) => {
+      const flags = (row.breakout ? '💥' : '') + (row.retest ? '🔄' : '') + (row.squeeze ? '🌀' : '');
+      return `<tr>
+        <td style="color:var(--muted)">${i+1}</td>
+        <td><strong>${row.symbol}</strong></td>
+        <td><span style="color:${scoreColor(row.score)};font-weight:700">${row.score.toFixed(1)}</span></td>
+        <td>${miniBar(row.trend,100,'#58a6ff')}</td>
+        <td>${miniBar(row.momentum,100,'#3fb950')}</td>
+        <td>${miniBar(row.liquidity,100,'#ffa657')}</td>
+        <td>${flags || '—'}</td>
+        <td>$${row.price.toPrecision(5)}</td>
+      </tr>`;
+    }).join('');
+
+  } catch(e) {
+    document.getElementById('signals-container').innerHTML =
+      '<div class="empty">⚠️ No scan data yet. The scanner runs daily — check back soon.<br><small>' + e.message + '</small></div>';
+  }
+}
+
+load();
+setInterval(load, 60000);  // refresh every minute
+</script>
+</body>
+</html>
