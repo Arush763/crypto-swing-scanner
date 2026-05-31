@@ -1,8 +1,229 @@
 {
-  "scan_time": "2024-01-01T00:00:00+00:00",
-  "assets_scanned": 0,
+  "scan_time": "2026-05-31T23:44:19.121330+00:00",
+  "assets_scanned": 28,
   "signals_count": 0,
-  "duration_s": 0,
+  "duration_s": 19.3,
   "signals": [],
-  "leaderboard": []
+  "leaderboard": [
+    {
+      "symbol": "LAB/USDT",
+      "score": 69.46,
+      "trend": 100.0,
+      "momentum": 75.0,
+      "liquidity": 19.78,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 9.08662
+    },
+    {
+      "symbol": "XLM/USDT",
+      "score": 66.32,
+      "trend": 100.0,
+      "momentum": 64.84,
+      "liquidity": 26.78,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 0.2581
+    },
+    {
+      "symbol": "HYPE/USDT",
+      "score": 64.65,
+      "trend": 100.0,
+      "momentum": 58.05,
+      "liquidity": 20.96,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 71.946
+    },
+    {
+      "symbol": "BNB/USDT",
+      "score": 57.02,
+      "trend": 100.0,
+      "momentum": 39.49,
+      "liquidity": 14.75,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 707.361
+    },
+    {
+      "symbol": "FET/USDT",
+      "score": 56.11,
+      "trend": 100.0,
+      "momentum": 35.88,
+      "liquidity": 20.54,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 0.2655
+    },
+    {
+      "symbol": "SEI/USDT",
+      "score": 54.35,
+      "trend": 100.0,
+      "momentum": 24.84,
+      "liquidity": 45.95,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 0.06789
+    },
+    {
+      "symbol": "ASTER/USDT",
+      "score": 53.48,
+      "trend": 100.0,
+      "momentum": 33.63,
+      "liquidity": 17.29,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 0.7246
+    },
+    {
+      "symbol": "RAIN/USDT",
+      "score": 52.96,
+      "trend": 100.0,
+      "momentum": 32.76,
+      "liquidity": 36.42,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 0.014295
+    },
+    {
+      "symbol": "TON/USDT",
+      "score": 49.1,
+      "trend": 81.17,
+      "momentum": 27.32,
+      "liquidity": 23.57,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 1.8955
+    },
+    {
+      "symbol": "ZEC/USDT",
+      "score": 39.57,
+      "trend": 60.0,
+      "momentum": 29.65,
+      "liquidity": 25.88,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 561.319
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "score": 36.49,
+      "trend": 65.0,
+      "momentum": 8.27,
+      "liquidity": 33.83,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 2.3001
+    },
+    {
+      "symbol": "BILL/USDT",
+      "score": 34.14,
+      "trend": 15.0,
+      "momentum": 35.56,
+      "liquidity": 28.79,
+      "breakout": false,
+      "retest": false,
+      "squeeze": true,
+      "price": 0.07951
+    },
+    {
+      "symbol": "USDC/USDT",
+      "score": 32.79,
+      "trend": 65.0,
+      "momentum": 10.32,
+      "liquidity": 20.15,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 1.0008
+    },
+    {
+      "symbol": "SHIB/USDT",
+      "score": 31.15,
+      "trend": 15.0,
+      "momentum": 12.7,
+      "liquidity": 61.65,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 5.503e-06
+    },
+    {
+      "symbol": "NEX/USDT",
+      "score": 30.38,
+      "trend": 0.0,
+      "momentum": 17.61,
+      "liquidity": 59.63,
+      "breakout": false,
+      "retest": false,
+      "squeeze": true,
+      "price": 3.477e-06
+    },
+    {
+      "symbol": "USDC/USD",
+      "score": 28.41,
+      "trend": 35.0,
+      "momentum": 10.36,
+      "liquidity": 16.8,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 0.9996
+    },
+    {
+      "symbol": "BTC/USDT",
+      "score": 20.0,
+      "trend": 0.0,
+      "momentum": 10.0,
+      "liquidity": 20.64,
+      "breakout": false,
+      "retest": false,
+      "squeeze": true,
+      "price": 73585.8
+    },
+    {
+      "symbol": "TAO/USDT",
+      "score": 18.58,
+      "trend": 0.0,
+      "momentum": 9.73,
+      "liquidity": 33.03,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 254.95
+    },
+    {
+      "symbol": "USDT/USD",
+      "score": 18.25,
+      "trend": 0.0,
+      "momentum": 10.32,
+      "liquidity": 26.38,
+      "breakout": false,
+      "retest": false,
+      "squeeze": false,
+      "price": 0.9985
+    },
+    {
+      "symbol": "SOL/USDT",
+      "score": 18.22,
+      "trend": 0.0,
+      "momentum": 10.12,
+      "liquidity": 21.01,
+      "breakout": false,
+      "retest": false,
+      "squeeze": true,
+      "price": 82.09
+    }
+  ]
 }
