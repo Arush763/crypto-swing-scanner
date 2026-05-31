@@ -1,6 +1,6 @@
 """
 Live scanner — runs one full scan cycle, sends Telegram alerts,
-and writes results JSON for the GitHub Pages dashboard.
+and writes results JSON for the GitHub Pages docs.
 
 Called by GitHub Actions on a schedule. Can also be run locally:
     python scripts/live_scan.py
@@ -35,7 +35,7 @@ UNIVERSE_COINS = [
     "HBAR/USDT", "SUI/USDT", "FET/USDT", "STG/USDT", "SHIB/USDT",
 ]
 
-OUTPUT_DIR  = Path("dashboard")
+OUTPUT_DIR  = Path("docs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 RESULTS_JSON = OUTPUT_DIR / "results.json"
 
@@ -54,7 +54,7 @@ def run() -> None:
 
     result = scanner.run()
 
-    # ── Write JSON for dashboard ─────────────────────────────────────
+    # ── Write JSON for docs ─────────────────────────────────────
     signals_data = []
     for s in result.signals:
         signals_data.append({
