@@ -105,9 +105,9 @@ class TelegramNotifier:
 
         self.send(msg)
 
+
     def send_scan_summary(self, result) -> None:
         """Send a brief scan summary with top assets."""
-        from datetime import timezone
         ts = result.timestamp.strftime("%Y-%m-%d %H:%M UTC")
         n_signals = len(result.signals)
 
@@ -136,4 +136,4 @@ class TelegramNotifier:
 
     def send_no_signal_ping(self, timestamp: str) -> None:
         """Lightweight heartbeat when no signals fire — confirms bot is alive."""
-        self.send(f"⚪ Scan complete {timestamp} — no signals. Bot is alive.")
+        self.send(f"⚪ Scan complete {timestamp} — no signals.")
