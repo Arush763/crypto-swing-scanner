@@ -2,14 +2,11 @@
 Streamlit Dashboard for the Crypto Swing Trading Scanner.
 
 Sections:
-  1. Live Signals         — assets that fired an alert this scan cycle
-  2. Top Overall          — full leaderboard sorted by final score
-  3. Breakouts            — assets with confirmed breakout
-  4. Retest Opportunities — assets retesting a prior breakout level
-  5. Squeeze Candidates   — assets in or breaking out of compression
-  6. Top Momentum         — highest momentum assets
-  7. Volume Leaders       — highest volume-expansion assets
-  8. Backtester           — run historical performance on cached data
+  1. Live Signals    — assets that fired an alert this scan cycle
+  2. Top Overall     — full leaderboard sorted by final score
+  3. Wall Signals     — assets with a confirmed order-book wall setup
+  4. Top Momentum     — highest momentum assets
+  5. Volume Leaders   — highest volume-expansion assets
 
 Run with:
     streamlit run src/dashboard/app.py
@@ -20,7 +17,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -31,10 +27,8 @@ from src.config.config import (
     DASHBOARD_REFRESH_SECONDS,
     DASHBOARD_TOP_N,
     SIGNAL_SCORE_THRESHOLD,
-    BacktestConfig,
 )
 from src.scanner import Scanner, ScanResult
-from src.backtesting.engine import run_backtest, optimise_parameters
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,9 +63,6 @@ with st.sidebar:
 
     st.divider()
     st.markdown("### Filters")
-    show_breakouts_only = st.checkbox("Breakouts only", value=False)
-    show_retests_only = st.checkbox("Retests only", value=False)
-    show_squeezes_only = st.checkbox("Squeezes only", value=False)
     min_rr = st.slider("Min Risk-Reward", 0.0, 5.0, 1.5, 0.1)
 
     st.divider()
@@ -136,12 +127,9 @@ st.divider()
 tabs = st.tabs([
     "🚨 Signals",
     "🏆 Leaderboard",
-    "💥 Breakouts",
-    "🔄 Retests",
-    "🌀 Squeezes",
+    "🧱 Wall Signals",
     "🚀 Momentum",
     "📊 Volume",
-    "🧪 Backtester",
 ])
 
 # ── 1. Signals ──────────────────────────────────────────────────────────────
@@ -152,13 +140,6 @@ with tabs[0]:
     if sig_df.empty:
         st.warning("No signals generated this cycle. Lower the score threshold to see more.")
     else:
-        # Apply sidebar filters
-        if show_breakouts_only:
-            sig_df = sig_df[sig_df["Type"] == "breakout"]
-        if show_retests_only:
-            sig_df = sig_df[sig_df["Type"] == "retest"]
-        if show_squeezes_only:
-            sig_df = sig_df[sig_df["Type"] == "squeeze_breakout"]
         sig_df = sig_df[sig_df["R:R"] >= min_rr]
 
         if sig_df.empty:
@@ -213,7 +194,7 @@ with tabs[1]:
     display_cols = [
         "symbol", "final_score", "trend_score", "momentum_score",
         "liquidity_score", "smart_money_score", "latest_price",
-        "is_breakout", "is_retest", "is_squeeze",
+        "is_wall_signal", "wall_event",
     ]
     st.dataframe(display_df[display_cols], use_container_width=True, height=600)
 
@@ -223,38 +204,18 @@ with tabs[1]:
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ── 3. Breakouts ─────────────────────────────────────────────────────────────
+# ── 3. Wall Signals ──────────────────────────────────────────────────────────
 with tabs[2]:
-    st.subheader("💥 Confirmed Breakouts")
-    bo_df = result.leaderboards.get("breakouts", pd.DataFrame())
-    if bo_df.empty:
-        st.info("No breakouts detected in this scan.")
+    st.subheader("🧱 Order-Book Wall Signals")
+    ws_df = result.leaderboards.get("wall_signals", pd.DataFrame())
+    if ws_df.empty:
+        st.info("No wall absorption/repulsion setups detected in this scan.")
     else:
-        st.dataframe(bo_df.head(DASHBOARD_TOP_N), use_container_width=True)
+        st.dataframe(ws_df.head(DASHBOARD_TOP_N), use_container_width=True)
 
 
-# ── 4. Retests ───────────────────────────────────────────────────────────────
+# ── 4. Momentum ──────────────────────────────────────────────────────────────
 with tabs[3]:
-    st.subheader("🔄 Retest Opportunities")
-    rt_df = result.leaderboards.get("retests", pd.DataFrame())
-    if rt_df.empty:
-        st.info("No retest setups detected in this scan.")
-    else:
-        st.dataframe(rt_df.head(DASHBOARD_TOP_N), use_container_width=True)
-
-
-# ── 5. Squeezes ──────────────────────────────────────────────────────────────
-with tabs[4]:
-    st.subheader("🌀 Volatility Squeeze Candidates")
-    sq_df = result.leaderboards.get("squeezes", pd.DataFrame())
-    if sq_df.empty:
-        st.info("No squeeze setups detected in this scan.")
-    else:
-        st.dataframe(sq_df.head(DASHBOARD_TOP_N), use_container_width=True)
-
-
-# ── 6. Momentum ──────────────────────────────────────────────────────────────
-with tabs[5]:
     st.subheader("🚀 Top Momentum Assets")
     mom_df = result.leaderboards.get("top_momentum", pd.DataFrame())
     if not mom_df.empty:
@@ -268,8 +229,8 @@ with tabs[5]:
         st.dataframe(mom_df.head(DASHBOARD_TOP_N), use_container_width=True)
 
 
-# ── 7. Volume Leaders ────────────────────────────────────────────────────────
-with tabs[6]:
+# ── 5. Volume Leaders ────────────────────────────────────────────────────────
+with tabs[4]:
     st.subheader("📊 Highest Volume Expansion")
     vol_df = result.leaderboards.get("top_volume_growth", pd.DataFrame())
     if not vol_df.empty:
@@ -281,86 +242,3 @@ with tabs[6]:
         )
         st.plotly_chart(fig, use_container_width=True)
         st.dataframe(vol_df.head(DASHBOARD_TOP_N), use_container_width=True)
-
-
-# ── 8. Backtester ─────────────────────────────────────────────────────────────
-with tabs[7]:
-    st.subheader("🧪 Strategy Backtester")
-    st.markdown(
-        "Run the scanner's signal logic against cached historical data "
-        "to evaluate performance metrics."
-    )
-
-    with st.form("backtest_form"):
-        bc1, bc2, bc3 = st.columns(3)
-        bt_ema_short = bc1.number_input("EMA Short", 5, 50, 20)
-        bt_ema_mid = bc2.number_input("EMA Mid", 20, 100, 50)
-        bt_vol_mult = bc3.number_input("Volume Multiplier", 1.0, 5.0, 2.0, 0.1)
-        bt_capital = st.number_input("Initial Capital (USD)", 1000, 1_000_000, 10_000, 1000)
-        bt_risk = st.slider("Risk per Trade (%)", 0.5, 5.0, 2.0, 0.5)
-        run_bt = st.form_submit_button("▶ Run Backtest")
-
-    if run_bt:
-        # Build universe from scan result's raw data (re-use cached parquet)
-        cache_dir = Path("data/cache")
-        parquet_files = list(cache_dir.glob("*.parquet")) if cache_dir.exists() else []
-
-        if not parquet_files:
-            st.warning("No cached data found. Run a scan first to populate the data cache.")
-        else:
-            with st.spinner("Running backtest…"):
-                bt_universe = {}
-                for f in parquet_files[:50]:  # cap at 50 for speed
-                    try:
-                        df = pd.read_parquet(f)
-                        symbol = f.stem.split("_", 1)[1].replace("_", "/")
-                        bt_universe[symbol] = df
-                    except Exception:
-                        pass
-
-                cfg = BacktestConfig(
-                    ema_short=bt_ema_short,
-                    ema_mid=bt_ema_mid,
-                    volume_multiplier=bt_vol_mult,
-                    initial_capital=float(bt_capital),
-                    risk_per_trade_pct=bt_risk / 100,
-                )
-                bt_result = run_backtest(bt_universe, cfg)
-
-            # Metrics
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Total Return", f"{bt_result.total_return_pct:.1f}%")
-            m2.metric("Win Rate", f"{bt_result.win_rate:.1f}%")
-            m3.metric("Sharpe Ratio", bt_result.sharpe_ratio)
-            m4.metric("Max Drawdown", f"{bt_result.max_drawdown_pct:.1f}%")
-
-            m5, m6, m7, m8 = st.columns(4)
-            m5.metric("Profit Factor", bt_result.profit_factor)
-            m6.metric("Avg Return/Trade", f"{bt_result.avg_return_pct:.2f}%")
-            m7.metric("Avg Hold (bars)", bt_result.avg_holding_bars)
-            m8.metric("Total Trades", bt_result.num_trades)
-
-            # Equity curve
-            eq = bt_result.equity_curve
-            fig_eq = px.line(
-                x=list(range(len(eq))), y=eq.tolist(),
-                title="Equity Curve", labels={"x": "Trade #", "y": "Portfolio Value (USD)"},
-            )
-            fig_eq.add_hline(y=float(bt_capital), line_dash="dash", line_color="gray")
-            st.plotly_chart(fig_eq, use_container_width=True)
-
-            # Trade log
-            if bt_result.trades:
-                trade_rows = [
-                    {
-                        "Entry Bar": t.entry_bar,
-                        "Entry Price": t.entry_price,
-                        "Exit Bar": t.exit_bar,
-                        "Exit Price": t.exit_price,
-                        "P&L %": round(t.pnl_pct, 2),
-                        "Hold Bars": t.holding_bars,
-                        "Exit Reason": t.exit_reason,
-                    }
-                    for t in bt_result.trades
-                ]
-                st.dataframe(pd.DataFrame(trade_rows), use_container_width=True, height=300)

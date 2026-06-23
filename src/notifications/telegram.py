@@ -77,10 +77,8 @@ class TelegramNotifier:
         """Send a formatted signal card for one trading alert."""
         strength_icon = "🔥" if signal.strength == "strong" else "📈"
         type_icon = {
-            "breakout":        "💥",
-            "retest":          "🔄",
-            "squeeze_breakout":"🌀",
-            "trend_continuation": "➡️",
+            "ob_wall_ask_absorption": "🧱",
+            "ob_wall_bid_repulsion":  "🏐",
         }.get(signal.signal_type, "📊")
 
         msg = (
@@ -123,10 +121,7 @@ class TelegramNotifier:
             top5 = result.ranked_df.head(5)
             msg += "\n🏆 <b>Top 5 Assets</b>\n"
             for _, row in top5.iterrows():
-                flags = ""
-                if row.get("is_breakout"): flags += "💥"
-                if row.get("is_retest"):   flags += "🔄"
-                if row.get("is_squeeze"):  flags += "🌀"
+                flags = "🧱" if row.get("is_wall_signal") else ""
                 msg += f"  {flags} <code>{row['symbol']:<14}</code> Score: <code>{row['final_score']:.0f}</code>\n"
 
         if n_signals == 0:

@@ -25,18 +25,15 @@ class ScoreResult:
     smart_money_score: float
     final_score: float
 
-    breakout_bonus: float = 0.0
-    retest_bonus: float   = 0.0
-    squeeze_bonus: float  = 0.0
+    wall_bonus: float = 0.0
 
     trend_detail:       dict = field(default_factory=dict)
     momentum_detail:    dict = field(default_factory=dict)
     liquidity_detail:   dict = field(default_factory=dict)
     smart_money_detail: dict = field(default_factory=dict)
 
-    is_breakout: bool = False
-    is_retest:   bool = False
-    is_squeeze:  bool = False
+    is_wall_signal: bool = False
+    wall_event: str = "none"
 
     latest_price: float = 0.0
     atr:          float = 0.0
@@ -55,12 +52,9 @@ def score_asset(
     exchange_count: int = 1,
     on_chain: Optional[OnChainDataProvider] = None,
     ob_signals=None,          # Optional[OrderBookSignals]
-    breakout_bonus: float = 0.0,
-    retest_bonus: float   = 0.0,
-    squeeze_bonus: float  = 0.0,
-    is_breakout: bool = False,
-    is_retest:   bool = False,
-    is_squeeze:  bool = False,
+    wall_bonus: float = 0.0,
+    is_wall_signal: bool = False,
+    wall_event: str = "none",
     atr: float = 0.0,
 ) -> ScoreResult:
     open_  = ohlcv["open"]
@@ -80,7 +74,7 @@ def score_asset(
         + liquidity["score"] * SCORE_WEIGHTS["liquidity"]
         + smart["score"]   * SCORE_WEIGHTS["smart_money"]
     )
-    final = min(100.0, base + breakout_bonus + retest_bonus + squeeze_bonus)
+    final = min(100.0, base + wall_bonus)
 
     ob_imb  = ob_signals.imbalance        if ob_signals else 0.0
     ob_conv = ob_signals.ob_breakout_conviction if ob_signals else 0.0
@@ -92,16 +86,13 @@ def score_asset(
         liquidity_score=liquidity["score"],
         smart_money_score=smart["score"],
         final_score=round(final, 2),
-        breakout_bonus=breakout_bonus,
-        retest_bonus=retest_bonus,
-        squeeze_bonus=squeeze_bonus,
+        wall_bonus=wall_bonus,
         trend_detail=trend,
         momentum_detail=momentum,
         liquidity_detail=liquidity,
         smart_money_detail=smart,
-        is_breakout=is_breakout,
-        is_retest=is_retest,
-        is_squeeze=is_squeeze,
+        is_wall_signal=is_wall_signal,
+        wall_event=wall_event,
         latest_price=float(close.iloc[-1]),
         atr=atr,
         ob_imbalance=ob_imb,

@@ -3,8 +3,8 @@ Central configuration for the crypto swing-trading scanner.
 All thresholds, weights, and parameters are defined here for easy tuning.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass
+from typing import Dict, List
 
 
 # ---------------------------------------------------------------------------
@@ -37,9 +37,8 @@ EMA_LONG: int  = 200
 MOMENTUM_PERIODS: List[int] = [7, 14, 30]
 
 # ---------------------------------------------------------------------------
-# Breakout detection
+# General volume-expansion default (consumed by indicators/volume.py)
 # ---------------------------------------------------------------------------
-BREAKOUT_RESISTANCE_LOOKBACK: int = 20       # Bars to look back for swing highs
 BREAKOUT_VOLUME_MULTIPLIER: float = 2.0      # Volume must be 2x 30-day average
 
 # ---------------------------------------------------------------------------
@@ -86,26 +85,38 @@ ETH_SYMBOL: str = "ETH/USDT"
 VOLUME_CONSISTENCY_WINDOW: int = 30
 
 # ---------------------------------------------------------------------------
-# Retest detection
+# Order-book wall signal (sole signal source — absorption vs. repulsion of
+# large resting orders, tracked across consecutive scan cycles)
 # ---------------------------------------------------------------------------
-RETEST_TOLERANCE_PCT: float = 0.03          # 3% tolerance around breakout level
+WALL_SAME_LEVEL_TOLERANCE_PCT: float = 0.01   # Walls within 1% are the "same" wall across cycles
+WALL_SHRINK_THRESHOLD: float = 0.5            # Wall is absorbed once size drops >=50% (or vanishes)
+WALL_SIGNAL_BONUS: float = 15.0               # Points added to composite score on a confirmed setup
 
 # ---------------------------------------------------------------------------
-# Backtesting defaults
+# Tape-based backtest signal — a historical proxy for the live OB wall
+# signal. Full historical L2 order-book depth isn't archived anywhere for
+# free, so backtesting instead uses free historical trade-tick data
+# (src/data/trade_tape.py) and infers absorption/repulsion from clustered
+# aggressor (taker buy/sell) volume around a recent swing level.
+# ---------------------------------------------------------------------------
+TAPE_LEVEL_LOOKBACK: int = 20          # Bars to look back for the swing high/low "level"
+TAPE_PROXIMITY_PCT: float = 0.03      # Price must be within 3% of the level to count as "tested"
+TAPE_VOLUME_SPIKE_MULT: float = 2.0   # Aggressor volume must be >= this x the rolling average
+TAPE_SIGNAL_BONUS: float = 15.0       # Points added to composite score on a confirmed setup
+
+# ---------------------------------------------------------------------------
+# Tape backtest defaults
 # ---------------------------------------------------------------------------
 @dataclass
-class BacktestConfig:
+class TapeBacktestConfig:
     timeframe: str = "4h"
     ema_short: int = EMA_SHORT
     ema_mid: int   = EMA_MID
     ema_long: int  = EMA_LONG
-    volume_multiplier: float = BREAKOUT_VOLUME_MULTIPLIER
-    score_threshold: float = SIGNAL_SCORE_THRESHOLD
-    momentum_periods: List[int] = field(default_factory=lambda: list(MOMENTUM_PERIODS))
     initial_capital: float = 10_000.0
     risk_per_trade_pct: float = 0.02
     commission_pct: float = 0.001
-    btc_regime_filter: bool = True          # Only enter when BTC > 200 EMA
+    btc_regime_filter: bool = True          # Only enter when BTC > 50/200 EMA
 
 
 # ---------------------------------------------------------------------------

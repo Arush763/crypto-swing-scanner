@@ -153,13 +153,13 @@ class TestCompositeScorer:
 
     def test_bonuses_increase_score(self, strong_uptrend):
         base = score_asset("TEST/USDT", strong_uptrend)
-        with_bonus = score_asset("TEST/USDT", strong_uptrend, breakout_bonus=10.0)
+        with_bonus = score_asset("TEST/USDT", strong_uptrend, wall_bonus=10.0)
         assert with_bonus.final_score >= base.final_score
 
     def test_score_capped_at_100(self, strong_uptrend):
         result = score_asset(
             "TEST/USDT", strong_uptrend,
-            breakout_bonus=50.0, retest_bonus=50.0, squeeze_bonus=50.0,
+            wall_bonus=150.0,
         )
         assert result.final_score <= 100.0
 

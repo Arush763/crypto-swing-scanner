@@ -48,12 +48,9 @@ def rank_results(scores: List[ScoreResult]) -> pd.DataFrame:
             "momentum_score": s.momentum_score,
             "liquidity_score": s.liquidity_score,
             "smart_money_score": s.smart_money_score,
-            "is_breakout": s.is_breakout,
-            "is_retest": s.is_retest,
-            "is_squeeze": s.is_squeeze,
-            "breakout_bonus": s.breakout_bonus,
-            "retest_bonus": s.retest_bonus,
-            "squeeze_bonus": s.squeeze_bonus,
+            "is_wall_signal": s.is_wall_signal,
+            "wall_event": s.wall_event,
+            "wall_bonus": s.wall_bonus,
             "latest_price": s.latest_price,
             "atr": s.atr,
             "volume_ratio": vol_ratio,
@@ -85,16 +82,8 @@ def top_n(df: pd.DataFrame, n: int, sort_by: str = "final_score") -> pd.DataFram
     return df.nlargest(n, sort_by).reset_index(drop=True)
 
 
-def filter_breakouts(df: pd.DataFrame) -> pd.DataFrame:
-    return df[df["is_breakout"]].sort_values("final_score", ascending=False).reset_index(drop=True)
-
-
-def filter_retests(df: pd.DataFrame) -> pd.DataFrame:
-    return df[df["is_retest"]].sort_values("final_score", ascending=False).reset_index(drop=True)
-
-
-def filter_squeezes(df: pd.DataFrame) -> pd.DataFrame:
-    return df[df["is_squeeze"]].sort_values("final_score", ascending=False).reset_index(drop=True)
+def filter_wall_signals(df: pd.DataFrame) -> pd.DataFrame:
+    return df[df["is_wall_signal"]].sort_values("final_score", ascending=False).reset_index(drop=True)
 
 
 def leaderboard_summary(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
@@ -104,7 +93,5 @@ def leaderboard_summary(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         "top_momentum": top_n(df, 20, "momentum_score"),
         "top_trend": top_n(df, 20, "trend_score"),
         "top_volume_growth": top_n(df, 20, "volume_ratio"),
-        "breakouts": filter_breakouts(df),
-        "retests": filter_retests(df),
-        "squeezes": filter_squeezes(df),
+        "wall_signals": filter_wall_signals(df),
     }

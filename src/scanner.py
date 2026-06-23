@@ -5,14 +5,19 @@ Pipeline per scan cycle:
   1. Fetch universe OHLCV from exchanges.
   2. Fetch order book snapshots (top-20 L2, free REST API).
   3. Score every asset (trend 30%, momentum 30%, liquidity 20%, smart money 20%).
-  4. Run detection modules (breakout, retest, squeeze).
-  5. Apply detection bonuses to composite score.
+  4. Track order-book walls per symbol across cycles and classify
+     absorption (continuation) vs. repulsion (bounce) — the sole signal source.
+  5. Apply the wall-signal bonus to the composite score.
   6. Use OB data to:
        - Augment smart money score with live imbalance
-       - Validate/suppress signals (wall detection, stop-hunt risk)
+       - Validate/suppress signals (stop-hunt risk)
        - Provide dynamic stop placement and position sizing
   7. Generate signals for qualifying assets.
   8. Build ranked leaderboards.
+
+Note: order-book wall tracking needs at least one prior scan cycle's
+snapshot per symbol, so enable_orderbook must be True for signals to fire
+at all, and the first cycle after a cold start won't produce any.
 """
 
 from __future__ import annotations
@@ -35,9 +40,7 @@ from src.config.config import (
 from src.data.fetcher import MarketDataFetcher
 from src.data.orderbook import OrderBookFetcher, OrderBookSignals
 from src.scoring.composite import score_asset, ScoreResult
-from src.modules.breakout import detect_breakout
-from src.modules.retest import detect_retest
-from src.modules.squeeze import detect_squeeze
+from src.modules.wall_signal import WallTracker, WallSignalResult
 from src.indicators.volatility import atr_latest
 from src.signals.generator import generate_signal, Signal, format_signal_table
 from src.ranking.ranker import rank_results, leaderboard_summary
@@ -81,6 +84,7 @@ class Scanner:
         self.enable_orderbook = enable_orderbook
         self.ob_order_size  = ob_order_size_usd
         self.ob_fetcher     = OrderBookFetcher() if enable_orderbook else None
+        self.wall_tracker   = WallTracker()
 
     def run(self) -> ScanResult:
         start = time.time()
@@ -99,28 +103,23 @@ class Scanner:
             try:
                 # Determine primary exchange for OB fetch
                 primary_exchange = "binance"
+                price = float(ohlcv["close"].iloc[-1])
 
-                ob_sigs = None
+                ob_sigs  = None
+                wall_sig = None
                 if self.enable_orderbook and self.ob_fetcher:
-                    breakout_res = detect_breakout(ohlcv["high"], ohlcv["low"], ohlcv["close"], ohlcv["volume"])
-                    resistance   = breakout_res.resistance_level if breakout_res.is_breakout else 0.0
                     ob_sigs = self.ob_fetcher.fetch_signals(
                         symbol, primary_exchange,
-                        resistance_level=resistance,
                         order_size_usd=self.ob_order_size,
                     )
+                    wall_sig = self.wall_tracker.update(symbol, price, ob_sigs)
 
-                result = self._score_one(symbol, ohlcv, btc_close, ob_sigs)
+                result = self._score_one(symbol, ohlcv, btc_close, ob_sigs, wall_sig)
                 scores.append(result)
-
-                # Re-detect with the same logic for signal generation
-                breakout = detect_breakout(ohlcv["high"], ohlcv["low"], ohlcv["close"], ohlcv["volume"])
-                retest   = detect_retest(ohlcv["open"], ohlcv["high"], ohlcv["low"], ohlcv["close"], breakout)
-                squeeze  = detect_squeeze(ohlcv["high"], ohlcv["low"], ohlcv["close"], ohlcv["volume"])
 
                 sig = generate_signal(
                     result, ohlcv,
-                    breakout=breakout, retest=retest, squeeze=squeeze,
+                    wall_signal=wall_sig,
                     ob_signals=ob_sigs,
                     score_threshold=self.score_threshold,
                 )
@@ -156,19 +155,16 @@ class Scanner:
         ohlcv: pd.DataFrame,
         btc_close: Optional[pd.Series],
         ob_sigs: Optional[OrderBookSignals],
+        wall_sig: Optional[WallSignalResult],
     ) -> ScoreResult:
         high   = ohlcv["high"]
         low    = ohlcv["low"]
         close  = ohlcv["close"]
         volume = ohlcv["volume"]
 
-        breakout = detect_breakout(high, low, close, volume)
-        retest   = detect_retest(ohlcv["open"], high, low, close, breakout)
-        squeeze  = detect_squeeze(high, low, close, volume)
-
-        bo_bonus = breakout.bonus_score if breakout.is_breakout else 0.0
-        rt_bonus = retest.bonus_score   if retest.is_retest     else 0.0
-        sq_bonus = squeeze.bonus_score  if (squeeze.squeeze_breakout or squeeze.in_squeeze) else 0.0
+        is_setup    = bool(wall_sig and wall_sig.is_setup)
+        wall_bonus  = wall_sig.bonus_score if is_setup else 0.0
+        wall_event  = wall_sig.event if wall_sig else "none"
 
         current_atr = atr_latest(high, low, close)
 
@@ -176,12 +172,9 @@ class Scanner:
             symbol=symbol,
             ohlcv=ohlcv,
             btc_close=btc_close,
-            breakout_bonus=bo_bonus,
-            retest_bonus=rt_bonus,
-            squeeze_bonus=sq_bonus,
-            is_breakout=breakout.is_breakout,
-            is_retest=retest.is_retest,
-            is_squeeze=squeeze.squeeze_breakout or squeeze.in_squeeze,
+            wall_bonus=wall_bonus,
+            is_wall_signal=is_setup,
+            wall_event=wall_event,
             atr=current_atr,
             ob_signals=ob_sigs,
         )

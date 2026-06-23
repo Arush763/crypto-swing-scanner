@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 from src.scanner import Scanner
 from src.notifications.telegram import TelegramNotifier
 
-# Top liquid coins — same universe validated in backtest
+# Top liquid coins
 UNIVERSE_COINS = [
     "BTC/USDT", "ETH/USDT", "XRP/USDT", "SOL/USDT", "BNB/USDT",
     "DOGE/USDT", "ADA/USDT", "AVAX/USDT", "LINK/USDT", "DOT/USDT",
@@ -49,7 +49,7 @@ def run() -> None:
         exchange_ids=["coinbase", "kucoin", "binanceus", "kraken"],
         min_volume=5_000_000,
         score_threshold=80.0,
-        enable_orderbook=False,   # keep fast for scheduled runs
+        enable_orderbook=True,   # order-book wall signal is the only signal source
     )
 
     result = scanner.run()
@@ -86,9 +86,7 @@ def run() -> None:
                 "trend":      row["trend_score"],
                 "momentum":   row["momentum_score"],
                 "liquidity":  row["liquidity_score"],
-                "breakout":   bool(row.get("is_breakout", False)),
-                "retest":     bool(row.get("is_retest", False)),
-                "squeeze":    bool(row.get("is_squeeze", False)),
+                "wall_signal": bool(row.get("is_wall_signal", False)),
                 "price":      row.get("latest_price", 0),
             })
 

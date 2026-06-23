@@ -1,14 +1,13 @@
 """
 Signal Generator.
 
-Produces tradeable alerts from ScoreResults + detection module outputs.
-
-Order book data is used when available to:
-  - Validate breakout conviction at the resistance level  (research: >1.5 imbalance ratio = 73% follow-through)
-  - Set stops below/above identified liquidity walls       (dynamic stop placement)
+Produces tradeable alerts purely from order-book wall behaviour — the only
+signal source. Order book data is used to:
+  - Detect whether a large resting order got absorbed (continuation) or
+    repelled price (bounce) — see src.modules.wall_signal
+  - Set stops below/above identified liquidity walls (dynamic stop placement)
   - Estimate realistic slippage and max safe position size
-  - Flag stop-hunt risk conditions
-  - Suppress signals when a large ask wall sits just above breakout level (68% fake-out rate)
+  - Flag stop-hunt risk conditions and suppress the signal
 """
 
 from __future__ import annotations
@@ -27,9 +26,7 @@ from src.config.config import (
     EMA_SHORT,
 )
 from src.scoring.composite import ScoreResult
-from src.modules.breakout import BreakoutResult
-from src.modules.retest import RetestResult
-from src.modules.squeeze import SqueezeResult
+from src.modules.wall_signal import WallSignalResult
 from src.indicators.trend import ema
 from src.indicators.volatility import atr_latest
 
@@ -40,7 +37,7 @@ logger = logging.getLogger(__name__)
 class Signal:
     symbol: str
     timestamp: datetime
-    signal_type: str        # "breakout" | "retest" | "squeeze_breakout" | "trend_continuation"
+    signal_type: str        # "ob_wall_ask_absorption" | "ob_wall_bid_repulsion"
     strength: str           # "strong" | "standard"
 
     # Price levels
@@ -79,9 +76,7 @@ class Signal:
 
     # Raw objects
     score_result: Optional[ScoreResult] = None
-    breakout: Optional[BreakoutResult] = None
-    retest: Optional[RetestResult] = None
-    squeeze: Optional[SqueezeResult] = None
+    wall_signal: Optional[WallSignalResult] = None
 
 
 def _compute_stop_loss(
@@ -112,31 +107,25 @@ def _compute_stop_loss(
 def generate_signal(
     score: ScoreResult,
     ohlcv: pd.DataFrame,
-    breakout: Optional[BreakoutResult] = None,
-    retest: Optional[RetestResult] = None,
-    squeeze: Optional[SqueezeResult] = None,
+    wall_signal: Optional[WallSignalResult] = None,
     ob_signals=None,          # Optional[OrderBookSignals]
     score_threshold: float = SIGNAL_SCORE_THRESHOLD,
 ) -> Optional[Signal]:
     """
     Evaluate whether a ScoreResult qualifies as a signal.
 
-    Suppression rules from orderbook research:
-      - Suppress if ask wall sits within 3% above breakout level (68% fake-out rate)
-      - Suppress if stop-hunt risk detected (imbalance < -0.6 on bullish push)
-      - Require OB conviction > 1.0 at resistance when OB data is available
+    wall_signal is the only entry path: it fires when a large resting order
+    in the book gets absorbed (price eats through it) or repels price
+    (bounces off it), both bullish cases (see src.modules.wall_signal).
+
+    Suppression: stop-hunt risk detected (imbalance < -0.6 on bullish push).
     """
     if score.final_score < score_threshold:
         return None
 
-    has_breakout = breakout is not None and breakout.is_breakout
-    has_retest   = retest   is not None and retest.is_retest
-    has_squeeze  = squeeze  is not None and squeeze.squeeze_breakout
-
-    if not (has_breakout or has_retest or has_squeeze):
+    if wall_signal is None or not wall_signal.is_setup:
         return None
 
-    # --- OB-based suppression (research-backed) ---
     ob_imbalance = 0.0
     ob_conviction = 1.0
     ob_has_wall = False
@@ -152,11 +141,6 @@ def generate_signal(
         ob_stop_hunt  = ob_signals.is_stop_hunt_risk
         max_safe_pos  = ob_signals.max_safe_position_usd
         slip_pct      = ob_signals.slippage_est_pct
-
-        # Suppress if ask wall blocks the breakout (likely fake-out)
-        if ob_has_wall and has_breakout:
-            logger.info("SUPPRESSED %s — ask wall above breakout level (68%% fake-out risk)", score.symbol)
-            return None
 
         # Suppress if stop-hunt risk detected
         if ob_stop_hunt:
@@ -179,27 +163,14 @@ def generate_signal(
     atr_stop = price - ATR_TRAILING_STOP_MULTIPLIER * current_atr
     stop     = _compute_stop_loss(price, ema_stop, atr_stop, ob_wall_stop)
 
-    # Entry zone
-    if has_retest and retest:
-        entry_low  = retest.entry_zone_low
-        entry_high = retest.entry_zone_high
-        signal_type = "retest"
-    elif has_squeeze and squeeze:
-        entry_low  = price
-        entry_high = price * 1.02
-        signal_type = "squeeze_breakout"
-    elif has_breakout and breakout:
-        res = breakout.resistance_level
-        entry_low  = res
-        entry_high = res * 1.02
-        signal_type = "breakout"
-    else:
-        entry_low  = price
-        entry_high = price * 1.01
-        signal_type = "trend_continuation"
+    # Entry zone — buy now, up to a small extension above price
+    entry_low   = price
+    entry_high  = price * (1.02 if wall_signal.event == "ask_absorption" else 1.01)
+    signal_type = f"ob_wall_{wall_signal.event}"
 
     resistance = (
-        breakout.resistance_level if has_breakout and breakout
+        ob_signals.wall_ask_price
+        if (ob_signals is not None and ob_signals.wall_ask_price > 0)
         else price * 1.10
     )
 
@@ -243,9 +214,7 @@ def generate_signal(
         exit_primary=f"Daily close below 20 EMA (currently {ema20:.6g})",
         exit_alternative=f"2 ATR trailing stop ({ATR_TRAILING_STOP_MULTIPLIER}×{current_atr:.4g} = {atr_stop:.6g})",
         score_result=score,
-        breakout=breakout,
-        retest=retest,
-        squeeze=squeeze,
+        wall_signal=wall_signal,
     )
 
 

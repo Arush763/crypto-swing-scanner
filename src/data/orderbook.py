@@ -15,7 +15,7 @@ Signals produced (all backed by research findings):
   - has_bid_wall_below     : large bid cluster within N% below current price
   - slippage_est_pct       : estimated slippage for a target order size
   - is_stop_hunt_risk      : imbalance + momentum signal for stop-hunt detection
-  - ob_breakout_conviction : imbalance score at the exact resistance level
+  - ob_breakout_conviction : imbalance score at the nearest detected ask wall
 """
 
 from __future__ import annotations
@@ -199,12 +199,14 @@ class OrderBookSignals:
 
     # Wall detection
     wall_bid_price: float = 0.0      # Strongest bid wall price (0 = none found)
+    wall_bid_size_usd: float = 0.0   # USD size of that bid wall
     wall_ask_price: float = 0.0      # Strongest ask wall price (0 = none found)
+    wall_ask_size_usd: float = 0.0   # USD size of that ask wall
     has_ask_wall_above: bool = False  # Ask wall within 5% above price
     has_bid_wall_below: bool = False  # Bid wall within 5% below price
 
     # Breakout-specific
-    ob_breakout_conviction: float = 0.0   # imbalance ratio at resistance level (>1.5 = bullish)
+    ob_breakout_conviction: float = 0.0   # imbalance ratio at the nearest ask wall (>1.5 = bullish)
 
     # Risk metrics
     slippage_est_pct: float = 0.0         # Estimated slippage for default order size
@@ -292,15 +294,13 @@ class OrderBookFetcher:
         self,
         symbol: str,
         exchange_id: str = "binance",
-        resistance_level: float = 0.0,
         order_size_usd: float = 10_000.0,
     ) -> Optional[OrderBookSignals]:
         """
         Fetch OB snapshot and compute all trading signals.
 
         Args:
-            resistance_level : the breakout level to check conviction at
-            order_size_usd   : hypothetical order size for slippage estimation
+            order_size_usd : hypothetical order size for slippage estimation
         """
         snap = self.fetch(symbol, exchange_id)
         if snap is None:
@@ -316,12 +316,13 @@ class OrderBookFetcher:
         bid_walls = snap.find_walls("bid")
         ask_walls = snap.find_walls("ask")
         wall_bid = bid_walls[-1][0] if bid_walls else 0.0   # strongest = highest bid wall
+        wall_bid_size = bid_walls[-1][1] if bid_walls else 0.0
         wall_ask = ask_walls[0][0] if ask_walls else 0.0    # lowest ask wall
+        wall_ask_size = ask_walls[0][1] if ask_walls else 0.0
 
-        # Breakout conviction at resistance
-        ob_conv = 1.0
-        if resistance_level > 0:
-            ob_conv = snap.imbalance_at_level(resistance_level)
+        # Conviction at the nearest ask wall — no candle-pattern level needed,
+        # the wall itself is the level we care about.
+        ob_conv = snap.imbalance_at_level(wall_ask) if wall_ask > 0 else 1.0
 
         # Slippage & position sizing
         slip = snap.estimate_slippage(order_size_usd)
@@ -349,7 +350,9 @@ class OrderBookFetcher:
             depth_usd_10bps=round(d10, 2),
             depth_usd_50bps=round(d50, 2),
             wall_bid_price=wall_bid,
+            wall_bid_size_usd=round(wall_bid_size, 2),
             wall_ask_price=wall_ask,
+            wall_ask_size_usd=round(wall_ask_size, 2),
             has_ask_wall_above=bool(ask_walls),
             has_bid_wall_below=bool(bid_walls),
             ob_breakout_conviction=round(ob_conv, 3),

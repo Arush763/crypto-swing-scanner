@@ -11,11 +11,8 @@ Launch the Streamlit dashboard:
     -- or --
     streamlit run src/dashboard/app.py
 
-Run the backtester on cached data:
-    python main.py backtest
-
-Run the parameter optimiser:
-    python main.py optimise
+Run the tape-signal backtest against free historical Binance tick data:
+    python main.py backtest --symbols BTC/USDT ETH/USDT --days 60
 
 Run unit tests:
     pytest tests/
@@ -70,7 +67,7 @@ def cmd_scan(args) -> None:
     print("\n🏆  TOP 10 OVERALL:\n")
     top = result.ranked_df.head(10)[
         ["symbol", "final_score", "trend_score", "momentum_score",
-         "liquidity_score", "smart_money_score", "is_breakout", "is_retest", "is_squeeze"]
+         "liquidity_score", "smart_money_score", "is_wall_signal", "wall_event"]
     ]
     print(top.to_string(index=True))
 
@@ -86,39 +83,33 @@ def cmd_dashboard(args) -> None:
 
 
 def cmd_backtest(args) -> None:
-    import pandas as pd
-    from src.backtesting.engine import run_backtest, BacktestConfig
-    from src.config.config import BacktestConfig as Cfg
+    from datetime import date, timedelta
+    from src.config.config import TapeBacktestConfig
+    from src.data.trade_tape import TradeTapeFetcher, resample_to_bars
+    from src.backtesting.engine import run_backtest
 
-    cache_dir = Path("data/cache")
-    parquet_files = list(cache_dir.glob("*.parquet")) if cache_dir.exists() else []
+    end = date.today() - timedelta(days=1)
+    start = end - timedelta(days=args.days)
 
-    if not parquet_files:
-        print("No cached data found. Run 'python main.py scan' first.")
+    fetcher = TradeTapeFetcher()
+    universe = {}
+    for symbol in args.symbols:
+        logger.info("Fetching %d days of tick data for %s…", args.days, symbol)
+        trades = fetcher.fetch_range(symbol, start, end)
+        if trades.empty:
+            logger.warning("No tick data available for %s — skipping", symbol)
+            continue
+        universe[symbol] = resample_to_bars(trades, timeframe=args.timeframe)
+
+    if not universe:
+        print("No tick data fetched for any symbol — aborting.")
         return
 
-    universe = {}
-    for f in parquet_files:
-        try:
-            df = pd.read_parquet(f)
-            symbol = f.stem.split("_", 1)[1].replace("_", "/")
-            universe[symbol] = df
-        except Exception:
-            pass
-
-    cfg = Cfg(
-        ema_short=args.ema_short,
-        ema_mid=args.ema_mid,
-        volume_multiplier=args.vol_mult,
-        initial_capital=args.capital,
-        risk_per_trade_pct=args.risk / 100,
-    )
-
-    logger.info("Running backtest on %d assets…", len(universe))
+    cfg = TapeBacktestConfig(timeframe=args.timeframe)
     result = run_backtest(universe, cfg)
 
     print(f"\n{'='*50}")
-    print(f"  BACKTEST RESULTS")
+    print(f"  TAPE BACKTEST RESULTS  ({start} to {end})")
     print(f"{'='*50}")
     print(f"  Total Return:    {result.total_return_pct:.1f}%")
     print(f"  Win Rate:        {result.win_rate:.1f}%")
@@ -130,31 +121,8 @@ def cmd_backtest(args) -> None:
     print(f"  Total Trades:    {result.num_trades}")
     print(f"{'='*50}\n")
 
-
-def cmd_optimise(args) -> None:
-    import pandas as pd
-    from src.backtesting.engine import optimise_parameters
-
-    cache_dir = Path("data/cache")
-    parquet_files = list(cache_dir.glob("*.parquet")) if cache_dir.exists() else []
-
-    if not parquet_files:
-        print("No cached data. Run a scan first.")
-        return
-
-    universe = {}
-    for f in parquet_files[:30]:  # limit for speed
-        try:
-            df = pd.read_parquet(f)
-            symbol = f.stem.split("_", 1)[1].replace("_", "/")
-            universe[symbol] = df
-        except Exception:
-            pass
-
-    logger.info("Running grid search…")
-    df = optimise_parameters(universe)
-    print("\nTop 10 parameter combinations by Sharpe Ratio:\n")
-    print(df.head(10).to_string(index=False))
+    if not result.per_symbol_stats.empty:
+        print(result.per_symbol_stats.to_string(index=False))
 
 
 # ---------------------------------------------------------------------------
@@ -180,16 +148,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("dashboard", help="Launch the Streamlit dashboard")
 
     # backtest
-    p_bt = sub.add_parser("backtest", help="Run backtester on cached data")
-    p_bt.add_argument("--ema-short", type=int, default=20)
-    p_bt.add_argument("--ema-mid", type=int, default=50)
-    p_bt.add_argument("--vol-mult", type=float, default=2.0)
-    p_bt.add_argument("--capital", type=float, default=10_000.0)
-    p_bt.add_argument("--risk", type=float, default=2.0,
-                      help="Risk per trade in percent (default: 2)")
-
-    # optimise
-    sub.add_parser("optimise", help="Grid-search parameter optimisation")
+    p_bt = sub.add_parser("backtest", help="Run the tape-signal backtest on free historical tick data")
+    p_bt.add_argument("--symbols", nargs="+", default=["BTC/USDT", "ETH/USDT", "SOL/USDT"])
+    p_bt.add_argument("--days", type=int, default=60,
+                      help="Trailing days of tick data to fetch (default: 60)")
+    p_bt.add_argument("--timeframe", default="4h")
 
     return parser
 
@@ -202,7 +165,6 @@ def main() -> None:
         "scan": cmd_scan,
         "dashboard": cmd_dashboard,
         "backtest": cmd_backtest,
-        "optimise": cmd_optimise,
     }
     dispatch[args.command](args)
 
