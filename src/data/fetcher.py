@@ -33,6 +33,14 @@ logger = logging.getLogger(__name__)
 # Column names used throughout the system
 OHLCV_COLS = ["timestamp", "open", "high", "low", "close", "volume"]
 
+# Minutes per timeframe, used to resample onto a timeframe an exchange
+# doesn't natively support (e.g. coinbase has no "4h" candle — only 2h/6h).
+_TIMEFRAME_MINUTES = {
+    "1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30,
+    "1h": 60, "2h": 120, "4h": 240, "6h": 360, "8h": 480, "12h": 720,
+    "1d": 1440,
+}
+
 
 class ExchangeClient:
     """Thin wrapper around a single ccxt exchange instance."""
@@ -50,10 +58,56 @@ class ExchangeClient:
     def load_markets(self) -> None:
         self.client.load_markets()
 
+    def _resolve_timeframe(self, timeframe: str, limit: int) -> Tuple[str, int, Optional[str]]:
+        """
+        If `timeframe` isn't natively supported, pick the largest supported
+        timeframe that evenly divides it and fetch at that resolution instead.
+        Returns (fetch_timeframe, fetch_limit, resample_rule); resample_rule
+        is None when no resampling is needed.
+        """
+        supported = getattr(self.client, "timeframes", None) or {}
+        if not supported or timeframe in supported:
+            return timeframe, limit, None
+
+        target_minutes = _TIMEFRAME_MINUTES.get(timeframe)
+        if target_minutes is None:
+            return timeframe, limit, None  # unknown timeframe, let ccxt raise naturally
+
+        candidates = [
+            (tf, _TIMEFRAME_MINUTES[tf]) for tf in supported
+            if tf in _TIMEFRAME_MINUTES
+            and _TIMEFRAME_MINUTES[tf] < target_minutes
+            and target_minutes % _TIMEFRAME_MINUTES[tf] == 0
+        ]
+        if not candidates:
+            return timeframe, limit, None
+
+        base_tf, base_minutes = max(candidates, key=lambda x: x[1])
+        ratio = target_minutes // base_minutes
+        logger.debug(
+            "%s has no native %s candle — resampling from %s",
+            self.exchange_id, timeframe, base_tf,
+        )
+        return base_tf, limit * ratio, f"{target_minutes}min"
+
+    @staticmethod
+    def _resample(df: pd.DataFrame, rule: str, limit: int) -> pd.DataFrame:
+        if df.empty:
+            return df
+        out = (
+            df.set_index("timestamp")
+            .resample(rule, label="left", closed="left")
+            .agg({"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"})
+            .dropna()
+            .reset_index()
+        )
+        return out.tail(limit).reset_index(drop=True)
+
     def fetch_ohlcv(self, symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
         """Return a clean OHLCV DataFrame sorted by timestamp ascending."""
+        fetch_timeframe, fetch_limit, resample_rule = self._resolve_timeframe(timeframe, limit)
         try:
-            raw = self.client.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+            raw = self.client.fetch_ohlcv(symbol, timeframe=fetch_timeframe, limit=fetch_limit)
         except ccxt.BadSymbol:
             logger.debug("%s: symbol %s not found on %s", symbol, symbol, self.exchange_id)
             return pd.DataFrame(columns=OHLCV_COLS)
@@ -73,6 +127,9 @@ class ExchangeClient:
         df[["open", "high", "low", "close", "volume"]] = df[
             ["open", "high", "low", "close", "volume"]
         ].astype(float)
+
+        if resample_rule:
+            df = self._resample(df, resample_rule, limit)
         return df
 
     def get_ticker(self, symbol: str) -> Optional[Dict]:
@@ -127,6 +184,12 @@ class MarketDataFetcher:
             except Exception as exc:
                 logger.error("Could not init exchange %s: %s", eid, exc)
 
+        # Populated by fetch_universe(): symbol -> exchange_id it was fetched
+        # from (the exchange with the highest 24h volume for that symbol).
+        # Downstream live data (order book, trade flow) must query this same
+        # exchange, since other exchanges may not even list the symbol.
+        self.symbol_exchange: Dict[str, str] = {}
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -145,10 +208,12 @@ class MarketDataFetcher:
         logger.info("Fetching OHLCV for %d candidate symbols", len(candidate_symbols))
 
         result: Dict[str, pd.DataFrame] = {}
+        self.symbol_exchange = {}
         for symbol, exchange_id in candidate_symbols.items():
             df = self._fetch_with_cache(symbol, exchange_id, timeframe, limit)
             if self._is_sufficient(df):
                 result[symbol] = df
+                self.symbol_exchange[symbol] = exchange_id
             time.sleep(0.05)  # gentle rate-limit padding
 
         logger.info("Universe built: %d assets", len(result))

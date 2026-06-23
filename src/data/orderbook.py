@@ -20,9 +20,11 @@ Signals produced (all backed by research findings):
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -36,6 +38,17 @@ WALL_MULTIPLIER = 3.0     # A cluster is a "wall" if it's ≥3× mean level size
 WALL_SCAN_PCT = 0.05      # Look for walls within ±5% of current price
 STOP_HUNT_IMBALANCE = -0.6  # Heavily ask-heavy while bullish = stop-hunt risk
 SLIPPAGE_FRACTION = 0.40  # Use 40% of depth to stay under 1% slippage
+
+# Per-exchange minimum interval between REST calls (seconds). Shared by both
+# OrderBookFetcher and LiveFlowFetcher since they hit the same exchanges.
+RATE_LIMITS = {
+    "coinbase": 0.1,
+    "kraken":   0.07,
+    "kucoin":   0.2,
+    "okx":      0.1,
+    "gateio":   0.2,
+}
+_DEFAULT_RATE_LIMIT = 0.5
 
 
 # ── Data containers ────────────────────────────────────────────────────────
@@ -158,7 +171,8 @@ class OrderBookSnapshot:
         spent_usd = 0.0
         entry = rows[0][0]
 
-        for price, size in rows:
+        for row in rows:
+            price, size = row[0], row[1]
             level_usd = price * size
             if spent_usd + level_usd >= order_size_usd:
                 # Fill partially at this level
@@ -227,14 +241,6 @@ class OrderBookFetcher:
     `cache_ttl_seconds` to avoid redundant calls within one scan cycle.
     """
 
-    # Per-exchange minimum interval between calls (seconds)
-    _RATE_LIMITS = {
-        "binance": 0.5,
-        "bybit":   0.2,
-        "coinbase": 0.1,
-        "kraken":  0.07,
-    }
-
     def __init__(self, depth: int = OB_DEPTH, cache_ttl: int = 60) -> None:
         self.depth = depth
         self.cache_ttl = cache_ttl
@@ -254,14 +260,14 @@ class OrderBookFetcher:
         return self._clients[exchange_id]
 
     def _respect_rate_limit(self, exchange_id: str) -> None:
-        min_interval = self._RATE_LIMITS.get(exchange_id, 0.5)
+        min_interval = RATE_LIMITS.get(exchange_id, _DEFAULT_RATE_LIMIT)
         last = self._last_call.get(exchange_id, 0.0)
         elapsed = time.time() - last
         if elapsed < min_interval:
             time.sleep(min_interval - elapsed)
         self._last_call[exchange_id] = time.time()
 
-    def fetch(self, symbol: str, exchange_id: str = "binance") -> Optional[OrderBookSnapshot]:
+    def fetch(self, symbol: str, exchange_id: str) -> Optional[OrderBookSnapshot]:
         """Fetch a single order book snapshot, using cache if fresh."""
         cache_key = f"{exchange_id}:{symbol}"
         now = time.time()
@@ -293,7 +299,7 @@ class OrderBookFetcher:
     def fetch_signals(
         self,
         symbol: str,
-        exchange_id: str = "binance",
+        exchange_id: str,
         order_size_usd: float = 10_000.0,
     ) -> Optional[OrderBookSignals]:
         """
@@ -360,4 +366,132 @@ class OrderBookFetcher:
             max_safe_position_usd=round(max_pos, 2),
             is_stop_hunt_risk=is_stop_hunt,
             ob_score=ob_score,
+        )
+
+
+# ── Live order-flow (executed trades) ───────────────────────────────────────
+
+@dataclass
+class FlowSignals:
+    """
+    Aggressor (taker) buy/sell volume executed since the previous scan
+    cycle. Used to corroborate order-book wall classification — a wall
+    shrinking could mean it was traded through (real absorption) or just
+    cancelled, and only executed flow can tell the two apart.
+    """
+
+    symbol: str
+    buy_volume_usd: float = 0.0
+    sell_volume_usd: float = 0.0
+    trade_count: int = 0
+
+    @property
+    def buy_dominant(self) -> bool:
+        from src.config.config import FLOW_DOMINANCE_RATIO
+        sell = self.sell_volume_usd or 1e-9
+        return self.buy_volume_usd / sell >= FLOW_DOMINANCE_RATIO
+
+    @property
+    def sell_dominant(self) -> bool:
+        from src.config.config import FLOW_DOMINANCE_RATIO
+        buy = self.buy_volume_usd or 1e-9
+        return self.sell_volume_usd / buy >= FLOW_DOMINANCE_RATIO
+
+
+class LiveFlowFetcher:
+    """
+    Fetches executed trades since the last cycle for each symbol and splits
+    them into aggressor buy/sell USD volume — the live counterpart to the
+    historical trade-tape proxy used in backtesting (src/data/trade_tape.py).
+
+    If `state_path` is given, the per-symbol trade cursor is persisted to
+    disk so it survives across process runs (live_scan.py is a fresh
+    process on every scheduled invocation — without this, every cycle would
+    look like the "first call" and never accumulate flow).
+    """
+
+    def __init__(self, trade_limit: int = 500, state_path=None) -> None:
+        self.trade_limit = trade_limit
+        self._clients: Dict[str, object] = {}
+        self._last_call: Dict[str, float] = {}
+        self._last_trade_ts: Dict[str, int] = {}  # f"{exchange}:{symbol}" -> ms
+        self.state_path = Path(state_path) if state_path else None
+        if self.state_path:
+            self._load()
+
+    def _load(self) -> None:
+        if not self.state_path.exists():
+            return
+        try:
+            self._last_trade_ts = json.loads(self.state_path.read_text())
+        except Exception as exc:
+            logger.warning("Could not load flow-fetcher state from %s: %s", self.state_path, exc)
+
+    def save(self) -> None:
+        if not self.state_path:
+            return
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        self.state_path.write_text(json.dumps(self._last_trade_ts))
+
+    def _get_client(self, exchange_id: str):
+        if exchange_id not in self._clients:
+            try:
+                import ccxt
+                cls = getattr(ccxt, exchange_id)
+                self._clients[exchange_id] = cls({"enableRateLimit": True})
+            except Exception as exc:
+                logger.error("Cannot init %s: %s", exchange_id, exc)
+                return None
+        return self._clients[exchange_id]
+
+    def _respect_rate_limit(self, exchange_id: str) -> None:
+        min_interval = RATE_LIMITS.get(exchange_id, _DEFAULT_RATE_LIMIT)
+        last = self._last_call.get(exchange_id, 0.0)
+        elapsed = time.time() - last
+        if elapsed < min_interval:
+            time.sleep(min_interval - elapsed)
+        self._last_call[exchange_id] = time.time()
+
+    def fetch_flow(self, symbol: str, exchange_id: str) -> Optional[FlowSignals]:
+        """
+        Fetch trades since the last call for this (exchange, symbol) pair.
+        The first call for a symbol has no prior cursor, so it only seeds
+        the cursor and returns an empty (zero-volume) result.
+        """
+        client = self._get_client(exchange_id)
+        if client is None:
+            return None
+
+        cache_key = f"{exchange_id}:{symbol}"
+        since = self._last_trade_ts.get(cache_key)
+
+        self._respect_rate_limit(exchange_id)
+        try:
+            trades = client.fetch_trades(symbol, since=since, limit=self.trade_limit)
+        except Exception as exc:
+            logger.debug("Trade flow fetch failed %s/%s: %s", exchange_id, symbol, exc)
+            return None
+
+        if trades:
+            self._last_trade_ts[cache_key] = trades[-1]["timestamp"] + 1
+
+        if since is None:
+            # No prior cursor — nothing to compare against yet this run.
+            return FlowSignals(symbol=symbol)
+
+        buy_usd = 0.0
+        sell_usd = 0.0
+        for t in trades:
+            notional = (t.get("price") or 0.0) * (t.get("amount") or 0.0)
+            side = t.get("side")
+            if side == "buy":
+                buy_usd += notional
+            elif side == "sell":
+                sell_usd += notional
+
+        return FlowSignals(
+            symbol=symbol,
+            buy_volume_usd=round(buy_usd, 2),
+            sell_volume_usd=round(sell_usd, 2),
+            trade_count=len(trades),
         )

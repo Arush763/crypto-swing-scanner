@@ -20,7 +20,7 @@ SCORE_WEIGHTS: Dict[str, float] = {
 # ---------------------------------------------------------------------------
 # Liquidity filters — assets that fail these are excluded from the universe
 # ---------------------------------------------------------------------------
-MIN_DAILY_VOLUME_USD: float = 5_000_000      # $5M minimum daily volume
+MIN_DAILY_VOLUME_USD: float = 3_000_000      # $3M minimum daily volume
 MIN_MARKET_CAP_USD: float = 50_000_000       # $50M minimum market cap
 MIN_HISTORY_DAYS: int = 60                   # Minimum candle history required
 
@@ -64,8 +64,16 @@ ATR_TRAILING_STOP_MULTIPLIER: float = 2.0   # 2 ATR trailing stop
 
 # ---------------------------------------------------------------------------
 # Supported exchanges (ccxt ids)
+#
+# binance and bybit are geo-blocked from this environment (451 / CloudFront
+# 403), and binanceus's real volume has migrated away — its USDT/USD pairs
+# come in near-zero, so it never contributes assets. okx and gateio are
+# free, geo-accessible, and have genuinely deep spot liquidity. bitget was
+# evaluated and excluded: its huge "volume" figures are dominated by
+# tokenized-stock proxy pairs (RNVDA, RTSLA, ...) with implausible/wash
+# volume, not real crypto liquidity.
 # ---------------------------------------------------------------------------
-EXCHANGES: List[str] = ["binance", "bybit", "coinbase", "kraken"]
+EXCHANGES: List[str] = ["coinbase", "kucoin", "kraken", "okx", "gateio"]
 
 # ---------------------------------------------------------------------------
 # Scan settings
@@ -91,6 +99,17 @@ VOLUME_CONSISTENCY_WINDOW: int = 30
 WALL_SAME_LEVEL_TOLERANCE_PCT: float = 0.01   # Walls within 1% are the "same" wall across cycles
 WALL_SHRINK_THRESHOLD: float = 0.5            # Wall is absorbed once size drops >=50% (or vanishes)
 WALL_SIGNAL_BONUS: float = 15.0               # Points added to composite score on a confirmed setup
+
+# ---------------------------------------------------------------------------
+# Live order-flow corroboration — a wall shrinking in the book is ambiguous
+# (it could've been eaten by real volume, or just cancelled/spoofed). Each
+# scan cycle, we pull executed trades since the prior cycle for the same
+# symbol and require aggressor (taker) volume to corroborate the wall
+# classification, mirroring the tape-based backtest proxy in
+# src/modules/tape_signal.py.
+# ---------------------------------------------------------------------------
+FLOW_TRADE_LIMIT: int = 500                   # Max trades fetched per cycle per symbol
+FLOW_DOMINANCE_RATIO: float = 1.2             # Aggressor side must lead the other by this ratio to count as "dominant"
 
 # ---------------------------------------------------------------------------
 # Tape-based backtest signal — a historical proxy for the live OB wall

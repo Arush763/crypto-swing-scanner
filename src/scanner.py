@@ -32,13 +32,14 @@ import pandas as pd
 
 from src.config.config import (
     EXCHANGES,
+    FLOW_TRADE_LIMIT,
     MIN_DAILY_VOLUME_USD,
     OHLCV_LIMIT,
     SCAN_TIMEFRAME,
     SIGNAL_SCORE_THRESHOLD,
 )
 from src.data.fetcher import MarketDataFetcher
-from src.data.orderbook import OrderBookFetcher, OrderBookSignals
+from src.data.orderbook import FlowSignals, LiveFlowFetcher, OrderBookFetcher, OrderBookSignals
 from src.scoring.composite import score_asset, ScoreResult
 from src.modules.wall_signal import WallTracker, WallSignalResult
 from src.indicators.volatility import atr_latest
@@ -77,14 +78,22 @@ class Scanner:
         score_threshold: float = SIGNAL_SCORE_THRESHOLD,
         enable_orderbook: bool = True,
         ob_order_size_usd: float = 10_000.0,
+        state_dir: Optional[str] = "data/state",
     ) -> None:
         self.fetcher        = MarketDataFetcher(exchange_ids=exchange_ids)
         self.min_volume     = min_volume
         self.score_threshold = score_threshold
         self.enable_orderbook = enable_orderbook
         self.ob_order_size  = ob_order_size_usd
+
+        # state_dir=None (e.g. in tests) disables disk persistence — trackers
+        # behave exactly as before, scoped to this process only.
+        wall_state = f"{state_dir}/wall_tracker.json" if state_dir else None
+        flow_state = f"{state_dir}/flow_cursor.json" if state_dir else None
+
         self.ob_fetcher     = OrderBookFetcher() if enable_orderbook else None
-        self.wall_tracker   = WallTracker()
+        self.flow_fetcher   = LiveFlowFetcher(trade_limit=FLOW_TRADE_LIMIT, state_path=flow_state) if enable_orderbook else None
+        self.wall_tracker   = WallTracker(state_path=wall_state)
 
     def run(self) -> ScanResult:
         start = time.time()
@@ -101,18 +110,21 @@ class Scanner:
 
         for symbol, ohlcv in raw_universe.items():
             try:
-                # Determine primary exchange for OB fetch
-                primary_exchange = "binance"
+                # Use the same exchange this symbol's OHLCV was won from —
+                # it's guaranteed to list the symbol and have the deepest
+                # liquidity for it among our configured exchanges.
+                primary_exchange = self.fetcher.symbol_exchange.get(symbol)
                 price = float(ohlcv["close"].iloc[-1])
 
                 ob_sigs  = None
                 wall_sig = None
-                if self.enable_orderbook and self.ob_fetcher:
+                if self.enable_orderbook and self.ob_fetcher and primary_exchange:
                     ob_sigs = self.ob_fetcher.fetch_signals(
                         symbol, primary_exchange,
                         order_size_usd=self.ob_order_size,
                     )
-                    wall_sig = self.wall_tracker.update(symbol, price, ob_sigs)
+                    flow_sigs = self.flow_fetcher.fetch_flow(symbol, primary_exchange) if self.flow_fetcher else None
+                    wall_sig = self.wall_tracker.update(symbol, price, ob_sigs, flow_sigs)
 
                 result = self._score_one(symbol, ohlcv, btc_close, ob_sigs, wall_sig)
                 scores.append(result)
@@ -128,6 +140,10 @@ class Scanner:
 
             except Exception as exc:
                 logger.warning("Failed to score %s: %s", symbol, exc)
+
+        self.wall_tracker.save()
+        if self.flow_fetcher:
+            self.flow_fetcher.save()
 
         ranked_df    = rank_results(scores)
         leaderboards = leaderboard_summary(ranked_df)

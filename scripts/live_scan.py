@@ -26,15 +26,6 @@ logger = logging.getLogger(__name__)
 from src.scanner import Scanner
 from src.notifications.telegram import TelegramNotifier
 
-# Top liquid coins
-UNIVERSE_COINS = [
-    "BTC/USDT", "ETH/USDT", "XRP/USDT", "SOL/USDT", "BNB/USDT",
-    "DOGE/USDT", "ADA/USDT", "AVAX/USDT", "LINK/USDT", "DOT/USDT",
-    "NEAR/USDT", "AAVE/USDT", "XLM/USDT", "XMR/USDT", "ZEC/USDT",
-    "LTC/USDT", "BCH/USDT", "UNI/USDT", "INJ/USDT", "TON/USDT",
-    "HBAR/USDT", "SUI/USDT", "FET/USDT", "STG/USDT", "SHIB/USDT",
-]
-
 OUTPUT_DIR  = Path("docs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 RESULTS_JSON = OUTPUT_DIR / "results.json"
@@ -43,12 +34,9 @@ RESULTS_JSON = OUTPUT_DIR / "results.json"
 def run() -> None:
     notifier = TelegramNotifier()
 
-    logger.info("Starting live scan (%d coins)…", len(UNIVERSE_COINS))
+    logger.info("Starting live scan…")
 
     scanner = Scanner(
-        exchange_ids=["coinbase", "kucoin", "binanceus", "kraken"],
-        min_volume=5_000_000,
-        score_threshold=80.0,
         enable_orderbook=True,   # order-book wall signal is the only signal source
     )
 

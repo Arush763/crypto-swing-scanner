@@ -2,8 +2,10 @@ name: Crypto Scanner
 
 on:
   schedule:
-    # Run daily at 00:00 UTC (after daily candle closes)
-    - cron: "0 0 * * *"
+    # Run every 4h on the candle boundary, matching SCAN_TIMEFRAME — the
+    # wall-signal tracker compares order-book/flow state to the prior cycle,
+    # so the cadence here needs to track the candle size it trades.
+    - cron: "0 */4 * * *"
   workflow_dispatch:   # allow manual trigger from GitHub UI
 
 jobs:
@@ -35,6 +37,6 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/results.json docs/index.html || true
+          git add docs/results.json docs/index.html data/state/ || true
           git diff --staged --quiet || git commit -m "chore: scanner results $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
