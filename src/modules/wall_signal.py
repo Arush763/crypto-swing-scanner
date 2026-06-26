@@ -8,11 +8,18 @@ rejection). A wall is treated as the same instance across cycles if its
 price stays within WALL_SAME_LEVEL_TOLERANCE_PCT of where it was last seen.
 
 This bot only trades long, so only the bullish cases generate a signal:
-  - ask_absorption : price pushed through a resting ask wall while its size
-                      collapsed -> sellers got run over, expect continuation up.
-  - bid_repulsion   : price approached a resting bid wall, failed to break it,
-                      and bounced away while the wall held its size -> buyers
-                      defended support, expect a bounce.
+  - ask_absorption    : price pushed through a resting ask wall while its
+                         size collapsed -> sellers got run over, expect
+                         continuation up.
+  - iceberg_absorption : price pushed through a resting ask wall whose
+                         displayed size never visibly shrank (held or
+                         refilled to roughly the same size each cycle), but
+                         executed flow shows several multiples of the
+                         wall's size traded through it anyway -> the wall is
+                         a refilling iceberg order, not real resistance.
+  - bid_repulsion      : price approached a resting bid wall, failed to
+                         break it, and bounced away while the wall held its
+                         size -> buyers defended support, expect a bounce.
 
 The mirror cases (bid wall eaten through -> breakdown; ask wall holding and
 rejecting price) are bearish and intentionally do not produce a signal.
@@ -45,8 +52,11 @@ from src.config.config import (
     WALL_SAME_LEVEL_TOLERANCE_PCT,
     WALL_SHRINK_THRESHOLD,
     WALL_SIGNAL_BONUS,
+    WALL_ICEBERG_VOLUME_MULT,
+    ML_FILTER_THRESHOLD,
 )
 from src.data.orderbook import FlowSignals, OrderBookSignals, WALL_SCAN_PCT
+from src.modules.signal_filter import SignalFilter, live_features
 
 
 @dataclass
@@ -61,7 +71,7 @@ class _WallSnapshot:
 @dataclass
 class WallSignalResult:
     is_setup: bool
-    event: str                  # "ask_absorption" | "bid_repulsion" | "none"
+    event: str                  # "ask_absorption" | "iceberg_absorption" | "bid_repulsion" | "none"
     wall_side: str               # "ask" | "bid" | ""
     wall_price: float
     wall_size_usd: float
@@ -86,7 +96,11 @@ def _bonus(strength: float) -> float:
 
 
 def _classify(
-    prev: _WallSnapshot, curr: _WallSnapshot, flow: Optional[FlowSignals] = None
+    prev: _WallSnapshot,
+    curr: _WallSnapshot,
+    flow: Optional[FlowSignals] = None,
+    ml_filter: Optional[SignalFilter] = None,
+    ml_threshold: float = ML_FILTER_THRESHOLD,
 ) -> WallSignalResult:
     # --- Ask wall (resistance) absorption: price was testing it, now past it,
     # and the wall that was defending it has shrunk or vanished ---
@@ -102,7 +116,40 @@ def _classify(
             else:
                 shrink_ratio = 1.0   # wall disappeared entirely
 
-            if shrink_ratio >= WALL_SHRINK_THRESHOLD:
+            move_strength_pct = (curr.price - prev.wall_ask_price) / prev.wall_ask_price * 100
+
+            # Iceberg signature: the displayed wall holds (or refills back
+            # to) roughly the same size every cycle, which looks like it's
+            # never being absorbed — but if heavy aggressor volume traded
+            # through it anyway (several multiples of the wall's own size),
+            # the resting size is being continuously replenished rather
+            # than defended. Only detectable with executed flow data, since
+            # OB size alone can't distinguish a refilling iceberg from a
+            # wall nobody has touched.
+            is_iceberg = (
+                not (shrink_ratio >= WALL_SHRINK_THRESHOLD)
+                and wall_still_there
+                and flow is not None
+                and prev.wall_ask_size > 0
+                and curr.wall_ask_size >= prev.wall_ask_size * (1 - WALL_SHRINK_THRESHOLD)
+                and flow.buy_volume_usd >= prev.wall_ask_size * WALL_ICEBERG_VOLUME_MULT
+            )
+
+            if (shrink_ratio >= WALL_SHRINK_THRESHOLD or is_iceberg) and _ml_passes(
+                ml_filter, ml_threshold, is_ask=True, distance_pct=distance_prev,
+                move_strength_pct=move_strength_pct, flow=flow,
+            ):
+                if is_iceberg:
+                    strength = min(1.0, flow.buy_volume_usd / (prev.wall_ask_size * WALL_ICEBERG_VOLUME_MULT))
+                    return WallSignalResult(
+                        is_setup=True,
+                        event="iceberg_absorption",
+                        wall_side="ask",
+                        wall_price=prev.wall_ask_price,
+                        wall_size_usd=prev.wall_ask_size,
+                        distance_pct=round(distance_prev, 4),
+                        bonus_score=_bonus(strength),
+                    )
                 return WallSignalResult(
                     is_setup=True,
                     event="ask_absorption",
@@ -124,7 +171,11 @@ def _classify(
             wall_held = _same_level(curr.wall_bid_price, prev.wall_bid_price) and (
                 prev.wall_bid_size <= 0 or curr.wall_bid_size >= prev.wall_bid_size * (1 - WALL_SHRINK_THRESHOLD)
             )
-            if wall_held:
+            move_strength_pct = (curr.price - prev.price) / prev.price * 100
+            if wall_held and _ml_passes(
+                ml_filter, ml_threshold, is_ask=False, distance_pct=distance_prev,
+                move_strength_pct=move_strength_pct, flow=flow,
+            ):
                 bounce_strength = ((curr.price - prev.price) / prev.price) / WALL_SCAN_PCT if WALL_SCAN_PCT > 0 else 0.0
                 return WallSignalResult(
                     is_setup=True,
@@ -137,6 +188,26 @@ def _classify(
                 )
 
     return _NO_SETUP
+
+
+def _ml_passes(
+    ml_filter: Optional[SignalFilter],
+    threshold: float,
+    is_ask: bool,
+    distance_pct: float,
+    move_strength_pct: float,
+    flow: Optional[FlowSignals],
+) -> bool:
+    if ml_filter is None or not ml_filter.is_trained:
+        return True
+    feat = live_features(
+        is_ask=is_ask,
+        distance_pct=distance_pct,
+        move_strength_pct=move_strength_pct,
+        buy_volume_usd=flow.buy_volume_usd if flow else 0.0,
+        sell_volume_usd=flow.sell_volume_usd if flow else 0.0,
+    )
+    return ml_filter.passes(feat, threshold)
 
 
 class WallTracker:
@@ -152,10 +223,16 @@ class WallTracker:
     would never see a "previous cycle" and no wall signal could ever fire.
     """
 
-    def __init__(self, history: int = 2, state_path: Union[str, Path, None] = None) -> None:
+    def __init__(
+        self,
+        history: int = 2,
+        state_path: Union[str, Path, None] = None,
+        ml_filter: Optional[SignalFilter] = None,
+    ) -> None:
         self._history: Dict[str, Deque[_WallSnapshot]] = {}
         self._maxlen = history
         self.state_path = Path(state_path) if state_path else None
+        self.ml_filter = ml_filter if ml_filter is not None else SignalFilter()
         if self.state_path:
             self._load()
 
@@ -203,6 +280,6 @@ class WallTracker:
             return _NO_SETUP
 
         prev = buf[-1]
-        result = _classify(prev, current, flow)
+        result = _classify(prev, current, flow, ml_filter=self.ml_filter)
         buf.append(current)
         return result

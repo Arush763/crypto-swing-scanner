@@ -4,7 +4,7 @@ All thresholds, weights, and parameters are defined here for easy tuning.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +99,7 @@ VOLUME_CONSISTENCY_WINDOW: int = 30
 WALL_SAME_LEVEL_TOLERANCE_PCT: float = 0.01   # Walls within 1% are the "same" wall across cycles
 WALL_SHRINK_THRESHOLD: float = 0.5            # Wall is absorbed once size drops >=50% (or vanishes)
 WALL_SIGNAL_BONUS: float = 15.0               # Points added to composite score on a confirmed setup
+WALL_ICEBERG_VOLUME_MULT: float = 3.0         # Iceberg: wall holds its size but >=3x its size traded through it
 
 # ---------------------------------------------------------------------------
 # Live order-flow corroboration — a wall shrinking in the book is ambiguous
@@ -112,6 +113,18 @@ FLOW_TRADE_LIMIT: int = 500                   # Max trades fetched per cycle per
 FLOW_DOMINANCE_RATIO: float = 1.2             # Aggressor side must lead the other by this ratio to count as "dominant"
 
 # ---------------------------------------------------------------------------
+# ML signal filter (src/modules/signal_filter.py) — a year-long backtest
+# showed ask_absorption setups have ~no real edge on their own (and get
+# *worse* with stronger breakouts/buy-margins, a buy-the-top pattern), while
+# bid_repulsion is consistently profitable. Rather than hard-dropping
+# ask_absorption, every setup of either type is scored by a model trained on
+# real per-signal trade outcomes and only passed through above this
+# probability threshold. Retrain via scripts/train_signal_filter.py.
+# ---------------------------------------------------------------------------
+ML_FILTER_MODEL_PATH: str = "data/models/signal_filter.joblib"
+ML_FILTER_THRESHOLD: float = 0.5
+
+# ---------------------------------------------------------------------------
 # Tape-based backtest signal — a historical proxy for the live OB wall
 # signal. Full historical L2 order-book depth isn't archived anywhere for
 # free, so backtesting instead uses free historical trade-tick data
@@ -122,6 +135,26 @@ TAPE_LEVEL_LOOKBACK: int = 20          # Bars to look back for the swing high/lo
 TAPE_PROXIMITY_PCT: float = 0.03      # Price must be within 3% of the level to count as "tested"
 TAPE_VOLUME_SPIKE_MULT: float = 2.0   # Aggressor volume must be >= this x the rolling average
 TAPE_SIGNAL_BONUS: float = 15.0       # Points added to composite score on a confirmed setup
+
+# Liquidity sweep (stop-hunt reclaim)
+TAPE_SWEEP_WINDOW: int = 1             # Bars allowed between the wick-break and the reclaim
+TAPE_SWEEP_VOLUME_MULT: float = 2.0    # Sweep bar's volume must be >= this x the rolling average
+
+# Climax exhaustion (capitulation reversal)
+TAPE_CLIMAX_WINDOW: int = 3            # Bars allowed between the climax bar and the reclaim
+TAPE_CLIMAX_VOLUME_MULT: float = 3.0   # Climax bar's volume must be >= this x the rolling average
+TAPE_CLIMAX_WIDE_MULT: float = 1.5     # Climax bar's range must be >= this x the rolling average range
+
+# VWAP / mean-reversion fade
+TAPE_VWAP_WINDOW: int = 20             # Bars in the rolling volume-weighted average price
+TAPE_VWAP_STRETCH_PCT: float = 0.03   # Price must be this far below VWAP to count as "stretched"
+TAPE_VWAP_VOLUME_MULT: float = 1.5     # Stretch bar's volume must be >= this x the rolling average
+
+# Momentum-ignition continuation (trend-following, not mean-reversion — bets
+# the breakout keeps running rather than that a level holds or bounces)
+TAPE_BREAKOUT_MARGIN_PCT: float = 0.01      # Close must clear resistance by at least this much
+TAPE_BREAKOUT_VOLUME_MULT: float = 2.0      # Breakout bar's volume must be >= this x the rolling average
+TAPE_BREAKOUT_DOMINANCE_RATIO: float = 1.5  # Buy volume must be >= this x sell volume on the breakout bar
 
 # ---------------------------------------------------------------------------
 # Tape backtest defaults
@@ -136,6 +169,90 @@ class TapeBacktestConfig:
     risk_per_trade_pct: float = 0.02
     commission_pct: float = 0.001
     btc_regime_filter: bool = True          # Only enter when BTC > 50/200 EMA
+
+    # Core detection thresholds — previously hardcoded to detect_tape_signals's
+    # own module-level defaults regardless of this config; exposed here so a
+    # backtest can tune trade frequency (looser proximity/volume = more setups).
+    lookback: int = TAPE_LEVEL_LOOKBACK
+    proximity_pct: float = TAPE_PROXIMITY_PCT
+    volume_spike_mult: float = TAPE_VOLUME_SPIKE_MULT
+    bonus_pts: float = TAPE_SIGNAL_BONUS
+
+    # Order-flow signal variants — see src.modules.tape_signal for what each
+    # one changes; defaults reproduce the original single-pass signal.
+    two_phase_absorption: bool = False
+    two_phase_window: int = 5
+    two_phase_narrow_mult: float = 0.7
+    cvd_filter: bool = False
+    cvd_window: int = 5
+    stacked_bars: int = 1
+    enable_ask_absorption: bool = True
+    enable_bid_repulsion: bool = True
+    enable_liquidity_sweep: bool = False
+    sweep_window: int = TAPE_SWEEP_WINDOW
+    sweep_volume_mult: float = TAPE_SWEEP_VOLUME_MULT
+    enable_climax_exhaustion: bool = False
+    climax_window: int = TAPE_CLIMAX_WINDOW
+    climax_volume_mult: float = TAPE_CLIMAX_VOLUME_MULT
+    climax_wide_mult: float = TAPE_CLIMAX_WIDE_MULT
+    enable_delta_divergence: bool = False
+    enable_vwap_fade: bool = False
+    vwap_window: int = TAPE_VWAP_WINDOW
+    vwap_stretch_pct: float = TAPE_VWAP_STRETCH_PCT
+    vwap_volume_mult: float = TAPE_VWAP_VOLUME_MULT
+
+    # Exit logic — previously hardcoded to the global ATR_TRAILING_STOP_MULTIPLIER
+    # regardless of this config; exposed here so the exit can be tuned per backtest.
+    # `momentum_atr_trailing_stop_mult` lets momentum_breakout trades use a
+    # wider trailing stop than every other (mean-reversion) event type,
+    # which needs a much tighter one — mixing signal families that want
+    # opposite exit styles under one shared multiplier understates both.
+    # Defaults to the same value as atr_trailing_stop_mult (no behaviour
+    # change) unless explicitly overridden.
+    atr_trailing_stop_mult: float = ATR_TRAILING_STOP_MULTIPLIER
+    momentum_atr_trailing_stop_mult: Optional[float] = None
+
+    # Per-symbol daily-trend regime filter — an alternative/addition to the
+    # market-wide BTC-only regime filter, gating entries on that symbol's own
+    # daily EMA trend instead of (or alongside) BTC's.
+    enable_daily_trend_filter: bool = False
+    daily_trend_ema_period: int = 20
+
+    # Momentum-ignition continuation — a trend-following entry, structurally
+    # different from the mean-reversion family above (absorption, repulsion,
+    # climax, vwap_fade all bet on a hold/bounce; this bets the move runs).
+    enable_momentum_breakout: bool = False
+    breakout_margin_pct: float = TAPE_BREAKOUT_MARGIN_PCT
+    breakout_volume_mult: float = TAPE_BREAKOUT_VOLUME_MULT
+    breakout_dominance_ratio: float = TAPE_BREAKOUT_DOMINANCE_RATIO
+
+    # Post-hoc quality filter — every detect_tape_signals() call already
+    # computes bonus_score per setup (current-bar-only inputs, same
+    # decide-at-close/fill-at-next-open timing the rest of the engine already
+    # relies on, so this adds no new lookahead) but the engine never used it
+    # to gate entries; every is_setup=True signal was taken regardless of
+    # strength. This filters out the weakest setups instead of adding more
+    # signal types.
+    min_bonus_score: float = 0.0
+
+    # Post-loss cooldown — after a symbol's trade closes at a loss, skip new
+    # entries on that same symbol for this many bars. Uses only that symbol's
+    # own already-closed trade history (sequential, no lookahead) on the
+    # theory that whatever made the level fail once (a still-trending market
+    # against the setup, a genuinely bad level) is likely to still be true
+    # for a little while after.
+    cooldown_bars_after_loss: int = 0
+
+    # Hard per-trade loss cap, independent of the ATR trailing stop. The
+    # trailing stop's width scales with that symbol's own recent volatility
+    # (trade_atr_mult * ATR), so a high-volatility symbol can ride a single
+    # trade much further underwater before the trailing stop ever triggers
+    # (e.g. FIL/USDT lost -14.37% on one trade in the 5-year walk-forward,
+    # well past any reasonable per-symbol cumulative-loss circuit breaker's
+    # own per-trade resolution). This forces an exit the moment unrealized
+    # loss reaches this percentage, regardless of ATR. `None` disables it
+    # (default — matches prior behaviour exactly).
+    max_single_trade_loss_pct: Optional[float] = None
 
 
 # ---------------------------------------------------------------------------

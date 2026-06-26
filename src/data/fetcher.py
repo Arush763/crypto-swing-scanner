@@ -194,6 +194,14 @@ class MarketDataFetcher:
     # Public API
     # ------------------------------------------------------------------
 
+    def list_universe_symbols(self, min_volume: float = MIN_DAILY_VOLUME_USD) -> List[str]:
+        """
+        Return just the symbols passing the liquidity filter (ticker data
+        only — no OHLCV fetch), for callers that need the universe's
+        membership without the cost of pulling candle history for it.
+        """
+        return list(self._collect_candidate_symbols(min_volume).keys())
+
     def fetch_universe(
         self,
         min_volume: float = MIN_DAILY_VOLUME_USD,

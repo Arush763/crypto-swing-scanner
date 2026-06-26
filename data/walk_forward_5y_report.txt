@@ -1,0 +1,54 @@
+==============================================================================
+WALK-FORWARD LOSS-DIAGNOSTICS REPORT
+==============================================================================
+
+Total trades: 641  |  Wins: 254  |  Losses: 387
+Total return: 10.01%  |  Max drawdown: -1.95%  |  Sharpe: 1.96
+Weeks simulated: 261  |  Cumulative training rows by end of run: 7075
+
+------------------------------------------------------------------------------
+BY SIGNAL EVENT (worst first)
+------------------------------------------------------------------------------
+  - bid_repulsion: 409 trades, 40.1% win rate, +463.0% total pnl (+1.13% avg/trade) — marginal.
+  - ask_absorption: 232 trades, 37.9% win rate, +749.7% total pnl (+3.23% avg/trade) — marginal.
+
+------------------------------------------------------------------------------
+WORST SYMBOLS BY TOTAL PNL
+------------------------------------------------------------------------------
+  - AVAX/USDT: 25 trades, 20.0% win rate, -51.0% total pnl
+  - TAO/USDT: 7 trades, 28.6% win rate, -42.9% total pnl
+  - WLD/USDT: 5 trades, 0.0% win rate, -35.0% total pnl
+  - JTO/USD: 4 trades, 0.0% win rate, -22.9% total pnl
+  - XRP/USDT: 13 trades, 46.2% win rate, -16.3% total pnl
+  - LINK/USDT: 23 trades, 34.8% win rate, -15.4% total pnl
+  - UNI/USDT: 9 trades, 22.2% win rate, -13.2% total pnl
+  - DOT/USDT: 18 trades, 38.9% win rate, -8.6% total pnl
+  - BTC/USDT: 33 trades, 39.4% win rate, -7.6% total pnl
+  - FIL/USDT: 16 trades, 31.2% win rate, -6.1% total pnl
+
+------------------------------------------------------------------------------
+FEATURE SEPARATION: WINNERS vs. LOSERS (all raw setups seen, not just acted-on trades)
+------------------------------------------------------------------------------
+  - symbol_trailing_win_rate: winners average higher values than losers (0.3966 vs 0.3702, a 0.16 std-dev gap). The model agrees — it weighted symbol_trailing_win_rate with coefficient +0.153 in the same direction.
+  - is_ask: winners average lower values than losers (0.2878 vs 0.3347, a 0.10 std-dev gap). The model agrees — it weighted is_ask with coefficient -0.103 in the same direction.
+  - symbol_trailing_avg_pnl_pct: winners average higher values than losers (0.9718 vs 0.6437, a 0.06 std-dev gap). The model agrees — it weighted symbol_trailing_avg_pnl_pct with coefficient +0.014 in the same direction.
+  - dominance_margin: winners average lower values than losers (1.1026 vs 1.1835, a 0.05 std-dev gap). The model agrees — it weighted dominance_margin with coefficient -0.135 in the same direction.
+  - move_strength_pct: winners average higher values than losers (1.2097 vs 1.1186, a 0.04 std-dev gap). The model agrees — it weighted move_strength_pct with coefficient +0.060 in the same direction.
+  - distance_pct: winners average higher values than losers (0.0107 vs 0.0105, a 0.03 std-dev gap). The model disagrees here (coefficient -0.025) — treat this one with caution, it may not hold up out of sample.
+  - volume_ratio: winners average lower values than losers (2.0056 vs 2.0892, a 0.03 std-dev gap). The model agrees — it weighted volume_ratio with coefficient -0.035 in the same direction.
+
+------------------------------------------------------------------------------
+FINAL MODEL'S LEARNED COEFFICIENTS (standardized-feature space)
+------------------------------------------------------------------------------
+  - symbol_trailing_win_rate: +0.153 (raises predicted win probability)
+  - dominance_margin: -0.135 (lowers predicted win probability)
+  - is_ask: -0.103 (lowers predicted win probability)
+  - move_strength_pct: +0.060 (raises predicted win probability)
+  - volume_ratio: -0.035 (lowers predicted win probability)
+  - distance_pct: -0.025 (lowers predicted win probability)
+  - symbol_trailing_avg_pnl_pct: +0.014 (raises predicted win probability)
+
+------------------------------------------------------------------------------
+SUMMARY: MAIN LOSING POINTS
+------------------------------------------------------------------------------
+  - symbol_trailing_win_rate is a confirmed loss driver: both the raw win/loss split and the model's own coefficient agree that lower symbol_trailing_win_rate predicts losses (gap +0.16 std-dev, model coefficient +0.153).

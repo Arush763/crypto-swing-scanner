@@ -23,8 +23,9 @@ from __future__ import annotations
 import io
 import logging
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -41,8 +42,15 @@ _COLUMNS = [
 
 
 def _to_binance_symbol(symbol: str) -> str:
-    """'BTC/USDT' -> 'BTCUSDT' (Binance Vision uses no separator)."""
-    return symbol.replace("/", "").upper()
+    """
+    'BTC/USDT' -> 'BTCUSDT' (Binance Vision uses no separator). The live
+    universe is pulled from coinbase/kucoin/kraken/okx/gateio and many of
+    those list pairs as e.g. 'BTC/USD' — Binance has no such pair, so the
+    quote is always normalised to USDT for the archive lookup regardless
+    of what quote currency the live exchange used.
+    """
+    base = symbol.split("/")[0]
+    return f"{base}USDT".upper()
 
 
 def _infer_time_unit(sample: float) -> str:
@@ -68,6 +76,13 @@ class TradeTapeFetcher:
         import os
         os.makedirs(cache_dir, exist_ok=True)
 
+        # Pooled, thread-safe session — fetch_many hits this concurrently
+        # from many threads, and requests' default per-host pool (10) would
+        # bottleneck well before our thread count does.
+        self.session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=32, pool_maxsize=32)
+        self.session.mount("https://", adapter)
+
     def _day_path(self, symbol: str, day: date) -> str:
         import os
         return os.path.join(self.cache_dir, f"{_to_binance_symbol(symbol)}_{day.isoformat()}.parquet")
@@ -82,7 +97,7 @@ class TradeTapeFetcher:
         sym = _to_binance_symbol(symbol)
         url = BASE_URL.format(symbol=sym, day=day.isoformat())
         try:
-            resp = requests.get(url, timeout=self.timeout)
+            resp = self.session.get(url, timeout=self.timeout)
             if resp.status_code != 200:
                 logger.debug("No tape data for %s %s (HTTP %d)", symbol, day, resp.status_code)
                 return None
@@ -114,6 +129,88 @@ class TradeTapeFetcher:
         if not frames:
             return pd.DataFrame(columns=_COLUMNS)
         return pd.concat(frames, ignore_index=True)
+
+    def _fetch_day_bars(self, symbol: str, day: date, timeframe: str) -> Optional[pd.DataFrame]:
+        """Fetch one day of ticks and immediately collapse to bars, so the
+        (potentially multi-million-row) raw trade frame is freed right
+        away instead of accumulating across an entire backtest range."""
+        trades = self.fetch_day(symbol, day)
+        if trades is None or trades.empty:
+            return None
+        return resample_to_bars(trades, timeframe=timeframe)
+
+    def fetch_many_bars(
+        self,
+        symbols: List[str],
+        start: date,
+        end: date,
+        timeframe: str = "4h",
+        max_workers: int = 16,
+    ) -> Dict[str, pd.DataFrame]:
+        """
+        Fetch [start, end] for every symbol concurrently and return resampled
+        bars per symbol — every (symbol, day) pair is one HTTP+unzip+resample
+        task, since fetch_day's caching makes each independent. This is
+        purely I/O-bound (static CDN archive), so threading turns what would
+        be hours of sequential downloads for a large universe into a single
+        bounded-concurrency pass.
+
+        Bars rather than raw trades are accumulated across the whole range:
+        a year of full tick data for ~75 symbols held in memory at once
+        (rather than discarded per-day after resampling) is enough to OOM —
+        4h bars divide evenly into a UTC day, so resampling day-by-day before
+        concatenating is equivalent to resampling the full concatenated
+        series.
+        """
+        days: List[date] = []
+        d = start
+        while d <= end:
+            days.append(d)
+            d += timedelta(days=1)
+
+        tasks = [(symbol, day) for symbol in symbols for day in days]
+        bars_by_symbol: Dict[str, List[pd.DataFrame]] = {s: [] for s in symbols}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            future_to_task = {
+                pool.submit(self._fetch_day_bars, symbol, day, timeframe): (symbol, day)
+                for symbol, day in tasks
+            }
+            for future in as_completed(future_to_task):
+                symbol, day = future_to_task[future]
+                try:
+                    bars = future.result()
+                except Exception as exc:
+                    logger.warning("Tape fetch failed %s %s: %s", symbol, day, exc)
+                    continue
+                if bars is not None and not bars.empty:
+                    bars_by_symbol[symbol].append(bars)
+
+        result = {}
+        for symbol, frames in bars_by_symbol.items():
+            if not frames:
+                result[symbol] = pd.DataFrame(
+                    columns=["open", "high", "low", "close", "volume", "buy_volume", "sell_volume"]
+                )
+                continue
+            result[symbol] = pd.concat(frames).sort_index()
+        return result
+
+
+def dedupe_by_binance_symbol(symbols: List[str]) -> List[str]:
+    """
+    Collapse symbols that normalise to the same Binance ticker (e.g.
+    'BTC/USD' and 'BTC/USDT' both -> 'BTCUSDT') to a single representative,
+    preferring the USDT-quoted spelling. Needed because the live universe
+    pulls the same base asset under different quote currencies across its
+    five exchanges, but they'd fetch identical tape data here.
+    """
+    chosen: Dict[str, str] = {}
+    for symbol in symbols:
+        key = _to_binance_symbol(symbol)
+        if key not in chosen or symbol.upper().endswith("/USDT"):
+            chosen[key] = symbol
+    return list(chosen.values())
 
 
 def resample_to_bars(trades: pd.DataFrame, timeframe: str = "4h") -> pd.DataFrame:

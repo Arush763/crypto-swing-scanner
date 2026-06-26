@@ -3,7 +3,19 @@
 import pytest
 
 from src.data.orderbook import OrderBookSignals, WALL_SCAN_PCT
-from src.modules.wall_signal import WallTracker
+from src.modules.signal_filter import SignalFilter
+from src.modules.wall_signal import WallTracker as _WallTracker
+
+# These tests exercise the OB wall classification logic itself, independent
+# of whatever the ML signal filter currently happens to decide on synthetic
+# fixture numbers — a real trained model at the default path would otherwise
+# make these tests depend on a retrainable artifact. Force the filter off.
+_DISABLED_FILTER = SignalFilter(model_path="__no_such_model__.joblib")
+
+
+def WallTracker(*args, **kwargs):
+    kwargs.setdefault("ml_filter", _DISABLED_FILTER)
+    return _WallTracker(*args, **kwargs)
 
 
 def make_ob_signals(

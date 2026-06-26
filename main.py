@@ -85,21 +85,36 @@ def cmd_dashboard(args) -> None:
 def cmd_backtest(args) -> None:
     from datetime import date, timedelta
     from src.config.config import TapeBacktestConfig
-    from src.data.trade_tape import TradeTapeFetcher, resample_to_bars
+    from src.data.fetcher import MarketDataFetcher
+    from src.data.trade_tape import TradeTapeFetcher, dedupe_by_binance_symbol
     from src.backtesting.engine import run_backtest
 
     end = date.today() - timedelta(days=1)
     start = end - timedelta(days=args.days)
 
+    if args.all_universe:
+        logger.info("Resolving live universe symbol list…")
+        raw_symbols = MarketDataFetcher().list_universe_symbols()
+        symbols = dedupe_by_binance_symbol(raw_symbols)
+        logger.info("%d universe symbols -> %d unique Binance tickers", len(raw_symbols), len(symbols))
+    else:
+        symbols = args.symbols
+
     fetcher = TradeTapeFetcher()
+    logger.info(
+        "Fetching %d days of tick data for %d symbols (concurrent)…",
+        args.days, len(symbols),
+    )
+    bars_by_symbol = fetcher.fetch_many_bars(
+        symbols, start, end, timeframe=args.timeframe, max_workers=args.workers,
+    )
+
     universe = {}
-    for symbol in args.symbols:
-        logger.info("Fetching %d days of tick data for %s…", args.days, symbol)
-        trades = fetcher.fetch_range(symbol, start, end)
-        if trades.empty:
+    for symbol, bars in bars_by_symbol.items():
+        if bars.empty:
             logger.warning("No tick data available for %s — skipping", symbol)
             continue
-        universe[symbol] = resample_to_bars(trades, timeframe=args.timeframe)
+        universe[symbol] = bars
 
     if not universe:
         print("No tick data fetched for any symbol — aborting.")
@@ -150,9 +165,13 @@ def build_parser() -> argparse.ArgumentParser:
     # backtest
     p_bt = sub.add_parser("backtest", help="Run the tape-signal backtest on free historical tick data")
     p_bt.add_argument("--symbols", nargs="+", default=["BTC/USDT", "ETH/USDT", "SOL/USDT"])
+    p_bt.add_argument("--all-universe", action="store_true",
+                      help="Backtest the full live-scan universe (~100 symbols) instead of --symbols")
     p_bt.add_argument("--days", type=int, default=60,
                       help="Trailing days of tick data to fetch (default: 60)")
     p_bt.add_argument("--timeframe", default="4h")
+    p_bt.add_argument("--workers", type=int, default=16,
+                      help="Concurrent download threads (default: 16)")
 
     return parser
 

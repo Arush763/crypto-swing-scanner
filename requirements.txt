@@ -2,6 +2,7 @@
 numpy>=1.26.0
 pandas>=2.2.0
 scipy>=1.13.0
+scikit-learn>=1.4.0   # ML signal filter (src/modules/signal_filter.py)
 
 # Exchange connectivity
 ccxt>=4.3.0
