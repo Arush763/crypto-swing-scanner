@@ -1,189 +1,189 @@
 {
-  "scan_time": "2026-07-01T21:30:29.678608+00:00",
-  "assets_scanned": 89,
+  "scan_time": "2026-07-02T03:37:13.982921+00:00",
+  "assets_scanned": 91,
   "signals_count": 0,
-  "duration_s": 83.08,
+  "duration_s": 84.83,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "JTO/USD",
-      "score": 66.59,
+      "symbol": "SOL/USD",
+      "score": 68.6,
       "trend": 100.0,
-      "momentum": 28.5,
-      "liquidity": 26.15,
+      "momentum": 42.21,
+      "liquidity": 17.13,
       "wall_signal": true,
-      "price": 0.7869
+      "price": 78.3
     },
     {
       "symbol": "BASED/USDT",
-      "score": 66.37,
+      "score": 66.42,
       "trend": 100.0,
       "momentum": 75.0,
-      "liquidity": 27.24,
+      "liquidity": 28.59,
       "wall_signal": false,
-      "price": 0.12246
-    },
-    {
-      "symbol": "BCH/USD",
-      "score": 65.84,
-      "trend": 83.91,
-      "momentum": 52.5,
-      "liquidity": 11.25,
-      "wall_signal": true,
-      "price": 215.33
+      "price": 0.13217
     },
     {
       "symbol": "BASED1/USD",
-      "score": 64.76,
+      "score": 65.28,
       "trend": 100.0,
       "momentum": 75.0,
-      "liquidity": 19.71,
+      "liquidity": 20.19,
       "wall_signal": false,
-      "price": 0.1223
-    },
-    {
-      "symbol": "XLM/USD",
-      "score": 61.86,
-      "trend": 83.82,
-      "momentum": 63.58,
-      "liquidity": 26.75,
-      "wall_signal": false,
-      "price": 0.201869
+      "price": 0.1321
     },
     {
       "symbol": "LIGHTER/USD",
-      "score": 61.75,
+      "score": 63.35,
       "trend": 100.0,
-      "momentum": 71.63,
+      "momentum": 69.81,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 2.133
+      "price": 2.095
     },
     {
       "symbol": "LIT/USDT",
-      "score": 61.37,
+      "score": 62.49,
       "trend": 100.0,
-      "momentum": 71.6,
+      "momentum": 69.89,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 2.1314
-    },
-    {
-      "symbol": "AI/USDT",
-      "score": 60.42,
-      "trend": 100.0,
-      "momentum": 57.82,
-      "liquidity": 25.73,
-      "wall_signal": false,
-      "price": 0.03524
+      "price": 2.0982
     },
     {
       "symbol": "MORPHO/USD",
-      "score": 58.53,
+      "score": 60.75,
       "trend": 100.0,
-      "momentum": 65.84,
+      "momentum": 70.8,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 2.076
+      "price": 2.1589
     },
     {
-      "symbol": "XLM/USDT",
-      "score": 55.69,
-      "trend": 83.78,
-      "momentum": 63.44,
-      "liquidity": 11.66,
-      "wall_signal": false,
-      "price": 0.202
+      "symbol": "BCH/USD",
+      "score": 60.22,
+      "trend": 83.83,
+      "momentum": 50.1,
+      "liquidity": 11.25,
+      "wall_signal": true,
+      "price": 215.48
     },
     {
-      "symbol": "SOL/USD",
-      "score": 54.85,
+      "symbol": "AI/USDT",
+      "score": 60.21,
       "trend": 100.0,
-      "momentum": 45.22,
-      "liquidity": 16.15,
+      "momentum": 55.0,
+      "liquidity": 25.95,
       "wall_signal": false,
-      "price": 77.79
+      "price": 0.03488
     },
     {
       "symbol": "TAIKO/USDT",
-      "score": 52.82,
-      "trend": 80.0,
+      "score": 59.64,
+      "trend": 100.0,
       "momentum": 75.0,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 0.1379
+      "price": 0.455
     },
     {
-      "symbol": "KAS/USDT",
-      "score": 52.57,
-      "trend": 82.98,
-      "momentum": 53.21,
-      "liquidity": 15.59,
+      "symbol": "XLM/USD",
+      "score": 57.7,
+      "trend": 83.42,
+      "momentum": 61.25,
+      "liquidity": 28.01,
       "wall_signal": false,
-      "price": 0.03115
+      "price": 0.200746
+    },
+    {
+      "symbol": "ZEC/USD",
+      "score": 57.59,
+      "trend": 61.49,
+      "momentum": 31.0,
+      "liquidity": 23.74,
+      "wall_signal": true,
+      "price": 420.97
+    },
+    {
+      "symbol": "AERO/USD",
+      "score": 57.07,
+      "trend": 80.0,
+      "momentum": 18.75,
+      "liquidity": 19.77,
+      "wall_signal": true,
+      "price": 0.47873
+    },
+    {
+      "symbol": "XLM/USDT",
+      "score": 54.87,
+      "trend": 83.42,
+      "momentum": 61.28,
+      "liquidity": 12.22,
+      "wall_signal": false,
+      "price": 0.201
     },
     {
       "symbol": "ADI/USDT",
-      "score": 52.13,
+      "score": 52.15,
       "trend": 100.0,
-      "momentum": 42.84,
-      "liquidity": 17.18,
+      "momentum": 39.85,
+      "liquidity": 17.43,
       "wall_signal": false,
-      "price": 5.6564
+      "price": 5.604
     },
     {
-      "symbol": "SUI/USD",
-      "score": 51.04,
-      "trend": 61.56,
-      "momentum": 33.36,
-      "liquidity": 21.18,
-      "wall_signal": true,
-      "price": 0.7217
-    },
-    {
-      "symbol": "SYN/USD",
-      "score": 50.91,
-      "trend": 85.0,
-      "momentum": 46.93,
-      "liquidity": 22.17,
+      "symbol": "OKB/USDT",
+      "score": 51.64,
+      "trend": 100.0,
+      "momentum": 24.77,
+      "liquidity": 20.28,
       "wall_signal": false,
-      "price": 0.4694
+      "price": 80.2
     },
     {
-      "symbol": "MON/USDT",
-      "score": 50.68,
-      "trend": 37.88,
-      "momentum": 51.31,
-      "liquidity": 27.18,
-      "wall_signal": true,
-      "price": 0.02047
+      "symbol": "JTO/USD",
+      "score": 51.28,
+      "trend": 100.0,
+      "momentum": 33.55,
+      "liquidity": 26.38,
+      "wall_signal": false,
+      "price": 0.7852
     },
     {
       "symbol": "SOL/USDT",
-      "score": 50.65,
-      "trend": 83.45,
-      "momentum": 44.85,
-      "liquidity": 17.81,
+      "score": 50.55,
+      "trend": 83.7,
+      "momentum": 42.21,
+      "liquidity": 18.41,
       "wall_signal": false,
-      "price": 77.84
+      "price": 78.43
     },
     {
-      "symbol": "USDG/USDT",
-      "score": 50.49,
-      "trend": 85.0,
-      "momentum": 9.83,
-      "liquidity": 11.25,
-      "wall_signal": true,
-      "price": 1.0013
-    },
-    {
-      "symbol": "FARTCOIN/USD",
-      "score": 50.34,
+      "symbol": "SYN/USD",
+      "score": 50.43,
       "trend": 100.0,
-      "momentum": 24.22,
-      "liquidity": 16.56,
+      "momentum": 34.02,
+      "liquidity": 22.29,
       "wall_signal": false,
-      "price": 0.1406
+      "price": 0.5173
+    },
+    {
+      "symbol": "KAS/USDT",
+      "score": 50.19,
+      "trend": 82.83,
+      "momentum": 46.19,
+      "liquidity": 15.66,
+      "wall_signal": false,
+      "price": 0.03112
+    },
+    {
+      "symbol": "SUI/USD",
+      "score": 50.04,
+      "trend": 56.77,
+      "momentum": 31.65,
+      "liquidity": 21.56,
+      "wall_signal": true,
+      "price": 0.7256
     }
   ]
 }
