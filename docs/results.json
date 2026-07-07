@@ -1,189 +1,189 @@
 {
-  "scan_time": "2026-07-07T07:39:51.411334+00:00",
-  "assets_scanned": 85,
+  "scan_time": "2026-07-07T10:57:38.863494+00:00",
+  "assets_scanned": 88,
   "signals_count": 0,
-  "duration_s": 79.21,
+  "duration_s": 80.24,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "MON/USD",
-      "score": 79.58,
-      "trend": 100.0,
-      "momentum": 67.6,
-      "liquidity": 30.28,
-      "wall_signal": true,
-      "price": 0.02479
-    },
-    {
-      "symbol": "ALLO/USDT",
-      "score": 70.58,
-      "trend": 100.0,
-      "momentum": 75.0,
-      "liquidity": 12.41,
-      "wall_signal": true,
-      "price": 0.41806
-    },
-    {
-      "symbol": "JTO/USD",
-      "score": 69.47,
-      "trend": 100.0,
-      "momentum": 36.34,
-      "liquidity": 19.82,
-      "wall_signal": true,
-      "price": 0.794
-    },
-    {
-      "symbol": "SOL/USD",
-      "score": 63.32,
-      "trend": 100.0,
-      "momentum": 20.34,
-      "liquidity": 20.2,
-      "wall_signal": true,
-      "price": 81.35
-    },
-    {
-      "symbol": "MON/USDT",
-      "score": 62.22,
-      "trend": 80.0,
-      "momentum": 67.75,
-      "liquidity": 46.25,
-      "wall_signal": false,
-      "price": 0.02482
-    },
-    {
-      "symbol": "HYPE/USD",
-      "score": 62.15,
-      "trend": 100.0,
-      "momentum": 30.75,
-      "liquidity": 22.77,
-      "wall_signal": true,
-      "price": 70.81
-    },
-    {
-      "symbol": "YFI/USDT",
-      "score": 61.29,
-      "trend": 100.0,
-      "momentum": 72.74,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 2329.0
-    },
-    {
-      "symbol": "PUMP/USDT",
-      "score": 61.02,
-      "trend": 100.0,
-      "momentum": 43.33,
-      "liquidity": 55.48,
-      "wall_signal": false,
-      "price": 0.00168
-    },
-    {
       "symbol": "YFI/USD",
-      "score": 60.24,
+      "score": 78.64,
       "trend": 100.0,
-      "momentum": 72.68,
+      "momentum": 72.92,
       "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 2322.03
-    },
-    {
-      "symbol": "LIGHTER/USD",
-      "score": 58.52,
-      "trend": 100.0,
-      "momentum": 51.52,
-      "liquidity": 21.43,
-      "wall_signal": false,
-      "price": 2.599
-    },
-    {
-      "symbol": "BLUR/USDT",
-      "score": 57.71,
-      "trend": 80.0,
-      "momentum": 72.77,
-      "liquidity": 19.2,
-      "wall_signal": false,
-      "price": 0.02039
-    },
-    {
-      "symbol": "NES/USDT",
-      "score": 56.97,
-      "trend": 80.0,
-      "momentum": 51.56,
-      "liquidity": 36.6,
-      "wall_signal": false,
-      "price": 0.2704
-    },
-    {
-      "symbol": "AAVE/USDT",
-      "score": 56.08,
-      "trend": 100.0,
-      "momentum": 47.67,
-      "liquidity": 27.14,
-      "wall_signal": false,
-      "price": 93.668
-    },
-    {
-      "symbol": "LIT/USDT",
-      "score": 55.36,
-      "trend": 100.0,
-      "momentum": 51.55,
-      "liquidity": 18.03,
-      "wall_signal": false,
-      "price": 2.6034
-    },
-    {
-      "symbol": "HMSTR/USDT",
-      "score": 54.84,
-      "trend": 85.0,
-      "momentum": 36.47,
-      "liquidity": 49.09,
-      "wall_signal": false,
-      "price": 0.0003148
-    },
-    {
-      "symbol": "AAVE/USD",
-      "score": 54.53,
-      "trend": 100.0,
-      "momentum": 48.1,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 93.7
-    },
-    {
-      "symbol": "NEAR/USDT",
-      "score": 53.88,
-      "trend": 81.54,
-      "momentum": 27.31,
-      "liquidity": 27.1,
       "wall_signal": true,
-      "price": 2.0293
-    },
-    {
-      "symbol": "LINK/USD",
-      "score": 53.65,
-      "trend": 85.91,
-      "momentum": 21.42,
-      "liquidity": 19.88,
-      "wall_signal": true,
-      "price": 7.912
+      "price": 2353.47
     },
     {
       "symbol": "AERO/USD",
-      "score": 51.93,
+      "score": 69.28,
       "trend": 100.0,
-      "momentum": 34.05,
-      "liquidity": 17.73,
-      "wall_signal": false,
-      "price": 0.57963
+      "momentum": 43.39,
+      "liquidity": 16.79,
+      "wall_signal": true,
+      "price": 0.58884
     },
     {
-      "symbol": "LAB/USDT",
-      "score": 51.81,
+      "symbol": "LIGHTER/USD",
+      "score": 68.67,
       "trend": 100.0,
-      "momentum": 35.0,
-      "liquidity": 15.45,
+      "momentum": 54.2,
+      "liquidity": 21.31,
+      "wall_signal": true,
+      "price": 2.619
+    },
+    {
+      "symbol": "HYPE/USD",
+      "score": 68.19,
+      "trend": 100.0,
+      "momentum": 34.69,
+      "liquidity": 22.43,
+      "wall_signal": true,
+      "price": 71.35
+    },
+    {
+      "symbol": "ALLO/USDT",
+      "score": 64.3,
+      "trend": 100.0,
+      "momentum": 75.0,
+      "liquidity": 12.08,
       "wall_signal": false,
-      "price": 14.96679
+      "price": 0.42752
+    },
+    {
+      "symbol": "MON/USD",
+      "score": 63.9,
+      "trend": 100.0,
+      "momentum": 66.25,
+      "liquidity": 30.07,
+      "wall_signal": false,
+      "price": 0.0242
+    },
+    {
+      "symbol": "HYPE/USDT",
+      "score": 62.28,
+      "trend": 100.0,
+      "momentum": 34.79,
+      "liquidity": 24.39,
+      "wall_signal": true,
+      "price": 71.411
+    },
+    {
+      "symbol": "YFI/USDT",
+      "score": 61.73,
+      "trend": 100.0,
+      "momentum": 72.9,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 2354.0
+    },
+    {
+      "symbol": "MON/USDT",
+      "score": 61.41,
+      "trend": 80.0,
+      "momentum": 66.38,
+      "liquidity": 46.25,
+      "wall_signal": false,
+      "price": 0.02423
+    },
+    {
+      "symbol": "HMSTR/USDT",
+      "score": 60.52,
+      "trend": 85.0,
+      "momentum": 55.0,
+      "liquidity": 49.84,
+      "wall_signal": false,
+      "price": 0.0003109
+    },
+    {
+      "symbol": "XRP/USD",
+      "score": 59.74,
+      "trend": 85.0,
+      "momentum": 17.31,
+      "liquidity": 29.21,
+      "wall_signal": true,
+      "price": 1.1223
+    },
+    {
+      "symbol": "BLUR/USDT",
+      "score": 59.72,
+      "trend": 80.0,
+      "momentum": 75.0,
+      "liquidity": 20.46,
+      "wall_signal": false,
+      "price": 0.02489
+    },
+    {
+      "symbol": "PUMP/USDT",
+      "score": 58.94,
+      "trend": 100.0,
+      "momentum": 37.1,
+      "liquidity": 55.95,
+      "wall_signal": false,
+      "price": 0.001642
+    },
+    {
+      "symbol": "LINK/USD",
+      "score": 57.34,
+      "trend": 85.81,
+      "momentum": 17.0,
+      "liquidity": 19.46,
+      "wall_signal": true,
+      "price": 7.901
+    },
+    {
+      "symbol": "RE/USDT",
+      "score": 56.46,
+      "trend": 84.95,
+      "momentum": 62.89,
+      "liquidity": 12.75,
+      "wall_signal": false,
+      "price": 0.71524
+    },
+    {
+      "symbol": "LIT/USDT",
+      "score": 55.2,
+      "trend": 100.0,
+      "momentum": 54.14,
+      "liquidity": 17.53,
+      "wall_signal": false,
+      "price": 2.6183
+    },
+    {
+      "symbol": "AAVE/USDT",
+      "score": 55.13,
+      "trend": 100.0,
+      "momentum": 35.64,
+      "liquidity": 27.06,
+      "wall_signal": false,
+      "price": 92.556
+    },
+    {
+      "symbol": "ZEC/USD",
+      "score": 53.62,
+      "trend": 100.0,
+      "momentum": 11.95,
+      "liquidity": 20.59,
+      "wall_signal": true,
+      "price": 453.96
+    },
+    {
+      "symbol": "AAVE/USD",
+      "score": 53.03,
+      "trend": 100.0,
+      "momentum": 35.44,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 92.45
+    },
+    {
+      "symbol": "ADI/USDT",
+      "score": 52.1,
+      "trend": 100.0,
+      "momentum": 18.63,
+      "liquidity": 33.08,
+      "wall_signal": false,
+      "price": 5.8253
     }
   ]
 }
