@@ -1,189 +1,189 @@
 {
-  "scan_time": "2026-07-17T17:13:26.146281+00:00",
-  "assets_scanned": 78,
+  "scan_time": "2026-07-17T20:57:09.092668+00:00",
+  "assets_scanned": 74,
   "signals_count": 0,
-  "duration_s": 74.24,
+  "duration_s": 72.46,
   "signals": [],
   "leaderboard": [
     {
       "symbol": "AKE/USDT",
-      "score": 68.85,
+      "score": 67.96,
       "trend": 100.0,
       "momentum": 75.0,
-      "liquidity": 42.21,
+      "liquidity": 42.49,
       "wall_signal": false,
-      "price": 0.0013271
+      "price": 0.0016842
     },
     {
       "symbol": "OXT/USD",
-      "score": 64.36,
+      "score": 64.77,
       "trend": 100.0,
       "momentum": 75.0,
-      "liquidity": 26.5,
+      "liquidity": 27.43,
       "wall_signal": false,
-      "price": 0.0213
-    },
-    {
-      "symbol": "OXT/USDT",
-      "score": 61.54,
-      "trend": 100.0,
-      "momentum": 75.0,
-      "liquidity": 15.38,
-      "wall_signal": false,
-      "price": 0.0213
-    },
-    {
-      "symbol": "PUMP/USDT",
-      "score": 61.45,
-      "trend": 100.0,
-      "momentum": 41.85,
-      "liquidity": 55.02,
-      "wall_signal": false,
-      "price": 0.00171
-    },
-    {
-      "symbol": "ZEC/USD",
-      "score": 61.38,
-      "trend": 100.0,
-      "momentum": 15.58,
-      "liquidity": 22.37,
-      "wall_signal": true,
-      "price": 553.2
-    },
-    {
-      "symbol": "SUI/USD",
-      "score": 60.7,
-      "trend": 100.0,
-      "momentum": 10.81,
-      "liquidity": 18.37,
-      "wall_signal": true,
-      "price": 0.744
-    },
-    {
-      "symbol": "KAITO/USDT",
-      "score": 60.16,
-      "trend": 100.0,
-      "momentum": 62.63,
-      "liquidity": 18.23,
-      "wall_signal": false,
-      "price": 0.8635
-    },
-    {
-      "symbol": "CRO/USD",
-      "score": 59.16,
-      "trend": 81.67,
-      "momentum": 35.01,
-      "liquidity": 11.25,
-      "wall_signal": true,
-      "price": 0.05864
-    },
-    {
-      "symbol": "BTC/USD",
-      "score": 58.84,
-      "trend": 100.0,
-      "momentum": 9.98,
-      "liquidity": 19.87,
-      "wall_signal": true,
-      "price": 64029.91
-    },
-    {
-      "symbol": "LINK/USD",
-      "score": 57.52,
-      "trend": 85.77,
-      "momentum": 15.12,
-      "liquidity": 15.66,
-      "wall_signal": true,
-      "price": 8.27
-    },
-    {
-      "symbol": "ONDO/USDT",
-      "score": 57.39,
-      "trend": 100.0,
-      "momentum": 51.63,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 0.3797
-    },
-    {
-      "symbol": "ONDO/USD",
-      "score": 55.98,
-      "trend": 100.0,
-      "momentum": 51.65,
-      "liquidity": 13.97,
-      "wall_signal": false,
-      "price": 0.38011
-    },
-    {
-      "symbol": "ZEC/USDT",
-      "score": 48.76,
-      "trend": 100.0,
-      "momentum": 15.59,
-      "liquidity": 27.27,
-      "wall_signal": false,
-      "price": 553.123
-    },
-    {
-      "symbol": "USDT/USD",
-      "score": 47.16,
-      "trend": 100.0,
-      "momentum": 10.06,
-      "liquidity": 33.34,
-      "wall_signal": false,
-      "price": 0.99923
+      "price": 0.0225
     },
     {
       "symbol": "LTC/USD",
-      "score": 47.13,
+      "score": 63.39,
       "trend": 100.0,
-      "momentum": 12.04,
-      "liquidity": 26.9,
+      "momentum": 15.09,
+      "liquidity": 26.49,
+      "wall_signal": true,
+      "price": 45.06
+    },
+    {
+      "symbol": "OXT/USDT",
+      "score": 61.42,
+      "trend": 100.0,
+      "momentum": 75.0,
+      "liquidity": 15.92,
       "wall_signal": false,
-      "price": 45.07
+      "price": 0.02182
+    },
+    {
+      "symbol": "PUMP/USDT",
+      "score": 58.48,
+      "trend": 100.0,
+      "momentum": 29.45,
+      "liquidity": 54.77,
+      "wall_signal": false,
+      "price": 0.001655
+    },
+    {
+      "symbol": "BTC/USD",
+      "score": 56.94,
+      "trend": 100.0,
+      "momentum": 11.22,
+      "liquidity": 19.72,
+      "wall_signal": true,
+      "price": 64129.66
+    },
+    {
+      "symbol": "KAITO/USDT",
+      "score": 56.66,
+      "trend": 100.0,
+      "momentum": 51.96,
+      "liquidity": 18.35,
+      "wall_signal": false,
+      "price": 0.8605
+    },
+    {
+      "symbol": "LRC/USDT",
+      "score": 56.41,
+      "trend": 80.0,
+      "momentum": 75.0,
+      "liquidity": 19.01,
+      "wall_signal": false,
+      "price": 0.01684
+    },
+    {
+      "symbol": "ONDO/USDT",
+      "score": 56.38,
+      "trend": 100.0,
+      "momentum": 48.72,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 0.3739
+    },
+    {
+      "symbol": "ONDO/USD",
+      "score": 56.01,
+      "trend": 100.0,
+      "momentum": 48.49,
+      "liquidity": 13.99,
+      "wall_signal": false,
+      "price": 0.3735
+    },
+    {
+      "symbol": "ZEC/USDT",
+      "score": 49.31,
+      "trend": 100.0,
+      "momentum": 13.67,
+      "liquidity": 26.73,
+      "wall_signal": false,
+      "price": 542.972
+    },
+    {
+      "symbol": "ESPORTS/USD",
+      "score": 48.71,
+      "trend": 55.0,
+      "momentum": 75.0,
+      "liquidity": 20.31,
+      "wall_signal": false,
+      "price": 0.0265
+    },
+    {
+      "symbol": "USDT/USD",
+      "score": 46.78,
+      "trend": 100.0,
+      "momentum": 9.89,
+      "liquidity": 33.85,
+      "wall_signal": false,
+      "price": 0.99924
     },
     {
       "symbol": "USDC/USD",
-      "score": 45.43,
+      "score": 46.06,
       "trend": 100.0,
-      "momentum": 10.06,
-      "liquidity": 24.11,
+      "momentum": 9.91,
+      "liquidity": 24.56,
       "wall_signal": false,
-      "price": 0.9998
-    },
-    {
-      "symbol": "OKB/USDT",
-      "score": 45.37,
-      "trend": 100.0,
-      "momentum": 12.77,
-      "liquidity": 22.32,
-      "wall_signal": false,
-      "price": 81.5
-    },
-    {
-      "symbol": "CRO/USDT",
-      "score": 45.13,
-      "trend": 81.66,
-      "momentum": 34.44,
-      "liquidity": 12.48,
-      "wall_signal": false,
-      "price": 0.05866
+      "price": 0.9999
     },
     {
       "symbol": "PEPE/USDT",
-      "score": 44.67,
+      "score": 45.87,
       "trend": 85.0,
-      "momentum": 9.54,
-      "liquidity": 47.7,
+      "momentum": 9.58,
+      "liquidity": 48.0,
       "wall_signal": false,
-      "price": 2.746e-06
+      "price": 2.739e-06
+    },
+    {
+      "symbol": "BTC/USDT",
+      "score": 45.24,
+      "trend": 100.0,
+      "momentum": 11.2,
+      "liquidity": 17.03,
+      "wall_signal": false,
+      "price": 64170.7
+    },
+    {
+      "symbol": "OKB/USDT",
+      "score": 45.03,
+      "trend": 100.0,
+      "momentum": 12.49,
+      "liquidity": 21.94,
+      "wall_signal": false,
+      "price": 81.14
+    },
+    {
+      "symbol": "ZEC/USD",
+      "score": 43.32,
+      "trend": 100.0,
+      "momentum": 13.7,
+      "liquidity": 22.01,
+      "wall_signal": false,
+      "price": 542.91
     },
     {
       "symbol": "ADA/USD",
-      "score": 44.25,
-      "trend": 80.65,
-      "momentum": 18.07,
-      "liquidity": 30.07,
+      "score": 42.94,
+      "trend": 80.0,
+      "momentum": 18.42,
+      "liquidity": 27.62,
       "wall_signal": false,
-      "price": 0.1663
+      "price": 0.1657
+    },
+    {
+      "symbol": "LINK/USDT",
+      "score": 42.41,
+      "trend": 85.58,
+      "momentum": 16.57,
+      "liquidity": 21.55,
+      "wall_signal": false,
+      "price": 8.2494
     }
   ]
 }
