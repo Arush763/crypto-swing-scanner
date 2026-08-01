@@ -1,189 +1,189 @@
 {
-  "scan_time": "2026-08-01T10:00:23.382974+00:00",
-  "assets_scanned": 74,
+  "scan_time": "2026-08-01T13:21:29.357104+00:00",
+  "assets_scanned": 71,
   "signals_count": 0,
-  "duration_s": 59.43,
+  "duration_s": 71.93,
   "signals": [],
   "leaderboard": [
     {
       "symbol": "RATS/USDT",
-      "score": 69.93,
+      "score": 69.25,
       "trend": 100.0,
       "momentum": 75.0,
       "liquidity": 46.25,
       "wall_signal": false,
-      "price": 5.298e-05
+      "price": 4.96e-05
     },
     {
       "symbol": "SATS/USDT",
-      "score": 68.64,
+      "score": 68.86,
       "trend": 100.0,
-      "momentum": 72.04,
+      "momentum": 72.54,
       "liquidity": 46.25,
       "wall_signal": false,
-      "price": 1.1164e-08
-    },
-    {
-      "symbol": "PUMP/USDT",
-      "score": 64.36,
-      "trend": 100.0,
-      "momentum": 48.06,
-      "liquidity": 57.35,
-      "wall_signal": false,
-      "price": 0.002179
+      "price": 1.148e-08
     },
     {
       "symbol": "ADA/USD",
-      "score": 63.52,
-      "trend": 81.66,
-      "momentum": 33.25,
-      "liquidity": 29.76,
+      "score": 67.28,
+      "trend": 82.35,
+      "momentum": 44.49,
+      "liquidity": 29.43,
       "wall_signal": true,
-      "price": 0.1718
+      "price": 0.1745
+    },
+    {
+      "symbol": "PUMP/USDT",
+      "score": 63.24,
+      "trend": 100.0,
+      "momentum": 44.3,
+      "liquidity": 58.32,
+      "wall_signal": false,
+      "price": 0.002136
     },
     {
       "symbol": "PUMP/USD",
-      "score": 63.09,
+      "score": 62.3,
       "trend": 100.0,
-      "momentum": 48.03,
-      "liquidity": 55.65,
+      "momentum": 44.79,
+      "liquidity": 56.91,
       "wall_signal": false,
-      "price": 0.002179
+      "price": 0.002136
     },
     {
       "symbol": "GIGGLE/USDT",
-      "score": 59.02,
+      "score": 61.64,
       "trend": 100.0,
-      "momentum": 68.3,
+      "momentum": 71.26,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 45.17
+      "price": 42.1
     },
     {
       "symbol": "SHIB/USDT",
-      "score": 58.16,
+      "score": 60.99,
       "trend": 100.0,
-      "momentum": 29.74,
-      "liquidity": 57.87,
+      "momentum": 35.11,
+      "liquidity": 57.96,
       "wall_signal": false,
-      "price": 4.933e-06
-    },
-    {
-      "symbol": "UNI/USD",
-      "score": 55.15,
-      "trend": 86.28,
-      "momentum": 26.64,
-      "liquidity": 18.3,
-      "wall_signal": true,
-      "price": 4.101
+      "price": 4.969e-06
     },
     {
       "symbol": "ADA/USDT",
-      "score": 52.54,
+      "score": 56.27,
       "trend": 100.0,
-      "momentum": 32.92,
-      "liquidity": 23.44,
+      "momentum": 44.35,
+      "liquidity": 22.8,
       "wall_signal": false,
-      "price": 0.1719
-    },
-    {
-      "symbol": "XMR/USD",
-      "score": 52.2,
-      "trend": 100.0,
-      "momentum": 30.99,
-      "liquidity": 21.32,
-      "wall_signal": false,
-      "price": 363.94
-    },
-    {
-      "symbol": "XMR/USDT",
-      "score": 52.17,
-      "trend": 100.0,
-      "momentum": 30.46,
-      "liquidity": 26.9,
-      "wall_signal": false,
-      "price": 364.14
-    },
-    {
-      "symbol": "COTI/USDT",
-      "score": 51.31,
-      "trend": 85.0,
-      "momentum": 36.34,
-      "liquidity": 37.58,
-      "wall_signal": false,
-      "price": 0.01356
-    },
-    {
-      "symbol": "BNB/USDT",
-      "score": 49.35,
-      "trend": 100.0,
-      "momentum": 18.11,
-      "liquidity": 24.9,
-      "wall_signal": false,
-      "price": 584.001
+      "price": 0.1747
     },
     {
       "symbol": "COTI/USD",
-      "score": 48.89,
-      "trend": 85.0,
+      "score": 53.38,
+      "trend": 100.0,
       "momentum": 35.0,
-      "liquidity": 39.14,
+      "liquidity": 39.9,
+      "wall_signal": false,
+      "price": 0.0161
+    },
+    {
+      "symbol": "COTI/USDT",
+      "score": 53.14,
+      "trend": 100.0,
+      "momentum": 35.0,
+      "liquidity": 38.79,
       "wall_signal": false,
       "price": 0.0145
     },
     {
-      "symbol": "MMT/USDT",
-      "score": 47.66,
-      "trend": 85.0,
-      "momentum": 34.07,
-      "liquidity": 12.06,
+      "symbol": "XMR/USD",
+      "score": 52.52,
+      "trend": 100.0,
+      "momentum": 28.3,
+      "liquidity": 20.95,
       "wall_signal": false,
-      "price": 0.199
+      "price": 359.52
+    },
+    {
+      "symbol": "XMR/USDT",
+      "score": 50.16,
+      "trend": 100.0,
+      "momentum": 27.82,
+      "liquidity": 26.48,
+      "wall_signal": false,
+      "price": 360.08
+    },
+    {
+      "symbol": "ONDO/USD",
+      "score": 49.78,
+      "trend": 65.0,
+      "momentum": 9.75,
+      "liquidity": 23.54,
+      "wall_signal": true,
+      "price": 0.38968
     },
     {
       "symbol": "UNI/USDT",
-      "score": 45.9,
-      "trend": 86.3,
-      "momentum": 26.71,
-      "liquidity": 25.89,
+      "score": 48.81,
+      "trend": 86.11,
+      "momentum": 28.08,
+      "liquidity": 25.46,
       "wall_signal": false,
-      "price": 4.1058
+      "price": 4.0932
     },
     {
-      "symbol": "OKB/USDT",
-      "score": 45.48,
-      "trend": 100.0,
-      "momentum": 13.29,
-      "liquidity": 15.86,
+      "symbol": "UNI/USD",
+      "score": 46.07,
+      "trend": 86.1,
+      "momentum": 28.08,
+      "liquidity": 17.96,
       "wall_signal": false,
-      "price": 86.18
-    },
-    {
-      "symbol": "EUR/USD",
-      "score": 45.03,
-      "trend": 100.0,
-      "momentum": 14.45,
-      "liquidity": 13.45,
-      "wall_signal": false,
-      "price": 1.15235
+      "price": 4.089
     },
     {
       "symbol": "ORDI/USDT",
-      "score": 43.55,
-      "trend": 62.12,
-      "momentum": 41.93,
-      "liquidity": 15.73,
+      "score": 46.06,
+      "trend": 63.43,
+      "momentum": 53.09,
+      "liquidity": 16.12,
       "wall_signal": false,
-      "price": 3.616
+      "price": 3.723
     },
     {
-      "symbol": "BNB/USD",
-      "score": 43.34,
+      "symbol": "EUR/USD",
+      "score": 45.81,
       "trend": 100.0,
-      "momentum": 18.04,
-      "liquidity": 11.25,
+      "momentum": 15.18,
+      "liquidity": 12.57,
       "wall_signal": false,
-      "price": 583.38
+      "price": 1.15228
+    },
+    {
+      "symbol": "OKB/USDT",
+      "score": 43.84,
+      "trend": 100.0,
+      "momentum": 15.97,
+      "liquidity": 14.83,
+      "wall_signal": false,
+      "price": 86.28
+    },
+    {
+      "symbol": "PEPE/USDT",
+      "score": 42.44,
+      "trend": 60.0,
+      "momentum": 13.78,
+      "liquidity": 58.13,
+      "wall_signal": false,
+      "price": 2.767e-06
+    },
+    {
+      "symbol": "BNB/USDT",
+      "score": 42.01,
+      "trend": 85.0,
+      "momentum": 15.26,
+      "liquidity": 24.84,
+      "wall_signal": false,
+      "price": 578.557
     }
   ]
 }
