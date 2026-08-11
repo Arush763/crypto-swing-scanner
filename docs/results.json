@@ -1,189 +1,189 @@
 {
-  "scan_time": "2026-08-11T16:58:24.744724+00:00",
-  "assets_scanned": 84,
+  "scan_time": "2026-08-11T20:43:46.599306+00:00",
+  "assets_scanned": 87,
   "signals_count": 0,
-  "duration_s": 58.33,
+  "duration_s": 68.98,
   "signals": [],
   "leaderboard": [
     {
       "symbol": "CRV/USD",
-      "score": 63.45,
+      "score": 70.55,
       "trend": 100.0,
-      "momentum": 67.17,
-      "liquidity": 15.13,
-      "wall_signal": false,
-      "price": 0.2678
+      "momentum": 58.52,
+      "liquidity": 15.53,
+      "wall_signal": true,
+      "price": 0.2697
     },
     {
-      "symbol": "CYS/USDT",
-      "score": 63.08,
+      "symbol": "LINK/USD",
+      "score": 68.03,
       "trend": 100.0,
-      "momentum": 75.0,
-      "liquidity": 12.92,
-      "wall_signal": false,
-      "price": 1.53908
-    },
-    {
-      "symbol": "PUMP/USDT",
-      "score": 62.73,
-      "trend": 100.0,
-      "momentum": 41.36,
-      "liquidity": 57.93,
-      "wall_signal": false,
-      "price": 0.002699
-    },
-    {
-      "symbol": "CRV/USDT",
-      "score": 61.15,
-      "trend": 100.0,
-      "momentum": 66.96,
-      "liquidity": 14.95,
-      "wall_signal": false,
-      "price": 0.268
-    },
-    {
-      "symbol": "PUMP/USD",
-      "score": 60.64,
-      "trend": 100.0,
-      "momentum": 41.16,
-      "liquidity": 51.77,
-      "wall_signal": false,
-      "price": 0.002695
-    },
-    {
-      "symbol": "LIT/USDT",
-      "score": 56.96,
-      "trend": 100.0,
-      "momentum": 44.75,
-      "liquidity": 19.85,
-      "wall_signal": false,
-      "price": 2.4465
+      "momentum": 39.65,
+      "liquidity": 16.8,
+      "wall_signal": true,
+      "price": 8.681
     },
     {
       "symbol": "XCRCL/USDT",
-      "score": 55.32,
+      "score": 65.0,
       "trend": 100.0,
-      "momentum": 51.36,
+      "momentum": 50.46,
       "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 71.16
+      "wall_signal": true,
+      "price": 71.64
     },
     {
-      "symbol": "ICP/USDT",
-      "score": 52.86,
+      "symbol": "CAP/USD",
+      "score": 64.78,
       "trend": 100.0,
-      "momentum": 35.87,
-      "liquidity": 12.79,
+      "momentum": 75.0,
+      "liquidity": 23.6,
       "wall_signal": false,
-      "price": 2.264
+      "price": 0.05485
     },
     {
-      "symbol": "ICP/USD",
-      "score": 51.55,
+      "symbol": "ENA/USD",
+      "score": 64.31,
       "trend": 100.0,
-      "momentum": 35.54,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 2.2596
+      "momentum": 17.73,
+      "liquidity": 29.94,
+      "wall_signal": true,
+      "price": 0.0896
     },
     {
-      "symbol": "LINK/USDT",
-      "score": 50.96,
+      "symbol": "SOL/USD",
+      "score": 64.08,
       "trend": 100.0,
-      "momentum": 31.61,
-      "liquidity": 22.58,
-      "wall_signal": false,
-      "price": 8.5572
+      "momentum": 19.58,
+      "liquidity": 21.69,
+      "wall_signal": true,
+      "price": 75.91
     },
     {
-      "symbol": "XMR/USD",
-      "score": 50.68,
-      "trend": 100.0,
-      "momentum": 29.02,
-      "liquidity": 14.02,
-      "wall_signal": false,
-      "price": 391.21
+      "symbol": "DOGE/USD",
+      "score": 60.45,
+      "trend": 81.06,
+      "momentum": 25.88,
+      "liquidity": 31.91,
+      "wall_signal": true,
+      "price": 0.07161
     },
     {
-      "symbol": "MMT/USDT",
-      "score": 50.24,
+      "symbol": "PUMP/USDT",
+      "score": 60.43,
       "trend": 100.0,
-      "momentum": 32.14,
-      "liquidity": 15.69,
+      "momentum": 39.3,
+      "liquidity": 57.53,
       "wall_signal": false,
-      "price": 0.2142
+      "price": 0.00279
     },
     {
-      "symbol": "XMR/USDT",
-      "score": 49.68,
+      "symbol": "CRV/USDT",
+      "score": 60.41,
       "trend": 100.0,
-      "momentum": 28.77,
-      "liquidity": 21.47,
+      "momentum": 58.29,
+      "liquidity": 15.12,
       "wall_signal": false,
-      "price": 391.7
+      "price": 0.2698
+    },
+    {
+      "symbol": "PUMP/USD",
+      "score": 60.39,
+      "trend": 100.0,
+      "momentum": 38.7,
+      "liquidity": 52.0,
+      "wall_signal": false,
+      "price": 0.002782
     },
     {
       "symbol": "GRVT/USDT",
-      "score": 48.96,
-      "trend": 86.66,
-      "momentum": 39.37,
-      "liquidity": 20.83,
-      "wall_signal": false,
-      "price": 0.31276
-    },
-    {
-      "symbol": "ARC/USDT",
-      "score": 48.46,
-      "trend": 84.91,
-      "momentum": 42.41,
-      "liquidity": 34.5,
-      "wall_signal": false,
-      "price": 0.0666
-    },
-    {
-      "symbol": "BNB/USDT",
-      "score": 47.97,
+      "score": 55.24,
       "trend": 100.0,
-      "momentum": 21.6,
-      "liquidity": 24.06,
+      "momentum": 50.23,
+      "liquidity": 20.87,
       "wall_signal": false,
-      "price": 609.512
+      "price": 0.3295
+    },
+    {
+      "symbol": "CYS/USDT",
+      "score": 54.99,
+      "trend": 100.0,
+      "momentum": 54.22,
+      "liquidity": 13.36,
+      "wall_signal": false,
+      "price": 1.1611
+    },
+    {
+      "symbol": "LINK/USDT",
+      "score": 54.59,
+      "trend": 100.0,
+      "momentum": 39.51,
+      "liquidity": 22.53,
+      "wall_signal": false,
+      "price": 8.6854
+    },
+    {
+      "symbol": "ADA/USD",
+      "score": 51.56,
+      "trend": 65.0,
+      "momentum": 8.34,
+      "liquidity": 33.04,
+      "wall_signal": true,
+      "price": 0.18579
     },
     {
       "symbol": "OKB/USDT",
-      "score": 47.3,
+      "score": 50.03,
       "trend": 100.0,
-      "momentum": 31.9,
-      "liquidity": 17.23,
+      "momentum": 34.26,
+      "liquidity": 17.47,
       "wall_signal": false,
-      "price": 94.92
+      "price": 95.62
     },
     {
-      "symbol": "TUT/USDT",
-      "score": 46.43,
-      "trend": 88.95,
-      "momentum": 35.0,
-      "liquidity": 17.78,
+      "symbol": "ENA/USDT",
+      "score": 49.63,
+      "trend": 100.0,
+      "momentum": 17.53,
+      "liquidity": 25.43,
       "wall_signal": false,
-      "price": 0.09055
+      "price": 0.08961
     },
     {
-      "symbol": "XAUT/USDT",
-      "score": 46.37,
+      "symbol": "LIT/USDT",
+      "score": 49.44,
       "trend": 100.0,
-      "momentum": 19.41,
+      "momentum": 25.39,
+      "liquidity": 19.51,
+      "wall_signal": false,
+      "price": 2.4358
+    },
+    {
+      "symbol": "MMT/USDT",
+      "score": 49.3,
+      "trend": 100.0,
+      "momentum": 32.33,
+      "liquidity": 15.79,
+      "wall_signal": false,
+      "price": 0.2108
+    },
+    {
+      "symbol": "BNB/USDT",
+      "score": 48.34,
+      "trend": 100.0,
+      "momentum": 22.18,
+      "liquidity": 23.66,
+      "wall_signal": false,
+      "price": 612.16
+    },
+    {
+      "symbol": "ICP/USD",
+      "score": 47.93,
+      "trend": 100.0,
+      "momentum": 25.93,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 4365.8
-    },
-    {
-      "symbol": "PAXG/USD",
-      "score": 45.87,
-      "trend": 100.0,
-      "momentum": 19.12,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 4375.08
+      "price": 2.247
     }
   ]
 }
