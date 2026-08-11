@@ -86,9 +86,13 @@ class TelegramNotifier:
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"💰 Price:       <code>${signal.current_price:,.6g}</code>\n"
             f"🎯 Entry Zone:  <code>${signal.entry_zone_low:,.6g} – ${signal.entry_zone_high:,.6g}</code>\n"
+            f"🥇 Target 1:    <code>${signal.take_profit_1:,.6g}</code>  (1R)\n"
+            f"🥈 Target 2:    <code>${signal.take_profit_2:,.6g}</code>  ({signal.risk_reward:.1f}R)\n"
             f"🛑 Stop Loss:   <code>${signal.stop_loss:,.6g}</code>\n"
             f"📏 Risk:        <code>{signal.risk_pct:.2f}%</code>\n"
             f"🏆 R:R Ratio:   <code>{signal.risk_reward:.2f}x</code>\n"
+            f"💸 Est. Cost:   <code>{signal.est_cost_pct:.3f}%</code>  "
+            f"→ net <code>{signal.net_reward_pct:+.2f}%</code>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📊 Score:       <code>{signal.final_score:.1f}/100</code>\n"
             f"   Trend:       <code>{signal.trend_score:.0f}</code>  "
@@ -132,3 +136,80 @@ class TelegramNotifier:
     def send_no_signal_ping(self, timestamp: str) -> None:
         """Lightweight heartbeat when no signals fire — confirms bot is alive."""
         self.send(f"⚪ Scan complete {timestamp} — no signals.")
+
+    # ------------------------------------------------------------------
+    # Position lifecycle triggers
+    #
+    # The scanner only ever announced entries. These close the loop by
+    # reporting what actually happened to the position afterwards, which is
+    # the difference between an alert feed and a trading record.
+    # ------------------------------------------------------------------
+
+    def send_entry_filled(self, position) -> None:
+        mode = "PAPER" if position.is_paper else "LIVE"
+        self.send(
+            f"✅ <b>ENTRY FILLED</b> [{mode}] — {position.symbol}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📥 Fill:        <code>${position.entry_price:,.6g}</code>\n"
+            f"📦 Size:        <code>{position.quantity:,.6g}</code>  "
+            f"(<code>${position.notional_usd:,.2f}</code>)\n"
+            f"🥇 TP1:         <code>${position.take_profit_1:,.6g}</code>\n"
+            f"🥈 TP2:         <code>${position.take_profit_2:,.6g}</code>\n"
+            f"🛑 SL:          <code>${position.stop_loss:,.6g}</code>\n"
+            f"💸 Entry cost:  <code>{position.entry_cost_pct:.3f}%</code>\n"
+        )
+
+    def send_target_hit(self, position, level: str, price: float, pnl_pct: float, pnl_usd: float) -> None:
+        icon = "🥇" if level == "TP1" else "🥈"
+        self.send(
+            f"{icon} <b>{level} HIT</b> — {position.symbol}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📤 Exit:        <code>${price:,.6g}</code>\n"
+            f"📈 P&amp;L:        <code>{pnl_pct:+.2f}%</code>  "
+            f"(<code>${pnl_usd:+,.2f}</code>)  <i>net of fees</i>\n"
+        )
+
+    def send_stop_hit(self, position, price: float, pnl_pct: float, pnl_usd: float) -> None:
+        self.send(
+            f"🛑 <b>STOP LOSS HIT</b> — {position.symbol}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📤 Exit:        <code>${price:,.6g}</code>\n"
+            f"📉 P&amp;L:        <code>{pnl_pct:+.2f}%</code>  "
+            f"(<code>${pnl_usd:+,.2f}</code>)  <i>net of fees</i>\n"
+        )
+
+    def send_position_closed(self, position, reason: str, price: float, pnl_pct: float, pnl_usd: float) -> None:
+        icon = "🟢" if pnl_pct >= 0 else "🔴"
+        self.send(
+            f"{icon} <b>CLOSED</b> — {position.symbol}  ({reason})\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📥 Entry:       <code>${position.entry_price:,.6g}</code>\n"
+            f"📤 Exit:        <code>${price:,.6g}</code>\n"
+            f"⏱ Held:        {position.holding_description()}\n"
+            f"📊 P&amp;L:        <code>{pnl_pct:+.2f}%</code>  "
+            f"(<code>${pnl_usd:+,.2f}</code>)  <i>net of fees</i>\n"
+        )
+
+    def send_risk_halt(self, reason: str, detail: str) -> None:
+        """Circuit breaker tripped — new entries are blocked."""
+        self.send(
+            f"🚨 <b>TRADING HALTED</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"Reason: <b>{reason}</b>\n"
+            f"{detail}\n\n"
+            f"No new positions will open until this resets. "
+            f"Existing positions are still managed."
+        )
+
+    def send_daily_summary(self, stats: dict) -> None:
+        pnl = stats.get("realised_pnl_usd", 0.0)
+        icon = "🟢" if pnl >= 0 else "🔴"
+        self.send(
+            f"{icon} <b>Daily Summary</b> — {stats.get('date','')}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"Trades:      <code>{stats.get('trades', 0)}</code>\n"
+            f"Win rate:    <code>{stats.get('win_rate_pct', 0):.1f}%</code>\n"
+            f"Fees paid:   <code>${stats.get('fees_usd', 0):,.2f}</code>\n"
+            f"Net P&amp;L:    <code>${pnl:+,.2f}</code>\n"
+            f"Open now:    <code>{stats.get('open_positions', 0)}</code>\n"
+        )

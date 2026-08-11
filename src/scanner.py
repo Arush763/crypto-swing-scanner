@@ -32,6 +32,8 @@ import pandas as pd
 
 from src.config.config import (
     EXCHANGES,
+    FLOW_GATE_ENABLED,
+    FLOW_GATE_MAX_PERCENTILE,
     FLOW_TRADE_LIMIT,
     MIN_DAILY_VOLUME_USD,
     OHLCV_LIMIT,
@@ -41,6 +43,7 @@ from src.config.config import (
 from src.data.fetcher import MarketDataFetcher
 from src.data.orderbook import FlowSignals, LiveFlowFetcher, OrderBookFetcher, OrderBookSignals
 from src.scoring.composite import score_asset, ScoreResult
+from src.modules.flow_gate import FlowConcentrationGate
 from src.modules.wall_signal import WallTracker, WallSignalResult
 from src.indicators.volatility import atr_latest
 from src.signals.generator import generate_signal, Signal, format_signal_table
@@ -79,12 +82,22 @@ class Scanner:
         enable_orderbook: bool = True,
         ob_order_size_usd: float = 10_000.0,
         state_dir: Optional[str] = "data/state",
+        timeframe: str = SCAN_TIMEFRAME,
+        ohlcv_limit: int = OHLCV_LIMIT,
     ) -> None:
         self.fetcher        = MarketDataFetcher(exchange_ids=exchange_ids)
         self.min_volume     = min_volume
         self.score_threshold = score_threshold
         self.enable_orderbook = enable_orderbook
         self.ob_order_size  = ob_order_size_usd
+        self.timeframe      = timeframe
+        self.ohlcv_limit    = ohlcv_limit
+
+        # Last cycle's raw OHLCV, kept so a caller running this in a loop can
+        # mark open positions against the same bars the scan decided on,
+        # rather than issuing a second round of price requests that would
+        # both cost rate limit and disagree slightly with the scan.
+        self.last_universe: Dict[str, pd.DataFrame] = {}
 
         # state_dir=None (e.g. in tests) disables disk persistence — trackers
         # behave exactly as before, scoped to this process only.
@@ -95,18 +108,34 @@ class Scanner:
         self.flow_fetcher   = LiveFlowFetcher(trade_limit=FLOW_TRADE_LIMIT, state_path=flow_state) if enable_orderbook else None
         self.wall_tracker   = WallTracker(state_path=wall_state)
 
+        gate_state = f"{state_dir}/flow_gate.json" if state_dir else None
+        self.flow_gate = (
+            FlowConcentrationGate(
+                state_path=gate_state,
+                max_percentile=FLOW_GATE_MAX_PERCENTILE,
+            )
+            if (enable_orderbook and FLOW_GATE_ENABLED)
+            else None
+        )
+
     def run(self) -> ScanResult:
         start = time.time()
         logger.info("=== Scan cycle started (OB=%s) ===", self.enable_orderbook)
 
-        raw_universe = self.fetcher.fetch_universe(min_volume=self.min_volume)
-        btc_ohlcv    = self.fetcher.fetch_btc()
+        raw_universe = self.fetcher.fetch_universe(
+            min_volume=self.min_volume,
+            timeframe=self.timeframe,
+            limit=self.ohlcv_limit,
+        )
+        self.last_universe = raw_universe
+        btc_ohlcv    = self.fetcher.fetch_btc(timeframe=self.timeframe, limit=self.ohlcv_limit)
         btc_close    = btc_ohlcv["close"] if not btc_ohlcv.empty else None
 
         logger.info("Scoring %d assets…", len(raw_universe))
 
         scores: List[ScoreResult] = []
         signals: List[Signal]     = []
+        gate_blocked: Dict[str, str] = {}
 
         for symbol, ohlcv in raw_universe.items():
             try:
@@ -126,17 +155,32 @@ class Scanner:
                     flow_sigs = self.flow_fetcher.fetch_flow(symbol, primary_exchange) if self.flow_fetcher else None
                     wall_sig = self.wall_tracker.update(symbol, price, ob_sigs, flow_sigs)
 
+                    # Flow-concentration gate: judged before scoring so a
+                    # suppressed symbol still contributes to the leaderboard
+                    # (useful for seeing what was skipped) but cannot fire a
+                    # signal. See src/modules/flow_gate.py.
+                    if self.flow_gate is not None and flow_sigs is not None:
+                        verdict = self.flow_gate.check(
+                            symbol, flow_sigs.whale_share,
+                            trade_count=flow_sigs.trade_count,
+                        )
+                        if not verdict.is_open:
+                            gate_blocked[symbol] = verdict.reason
+
                 result = self._score_one(symbol, ohlcv, btc_close, ob_sigs, wall_sig)
                 scores.append(result)
 
-                sig = generate_signal(
-                    result, ohlcv,
-                    wall_signal=wall_sig,
-                    ob_signals=ob_sigs,
-                    score_threshold=self.score_threshold,
-                )
-                if sig is not None:
-                    signals.append(sig)
+                if symbol in gate_blocked:
+                    logger.info("GATED %s — %s", symbol, gate_blocked[symbol])
+                else:
+                    sig = generate_signal(
+                        result, ohlcv,
+                        wall_signal=wall_sig,
+                        ob_signals=ob_sigs,
+                        score_threshold=self.score_threshold,
+                    )
+                    if sig is not None:
+                        signals.append(sig)
 
             except Exception as exc:
                 logger.warning("Failed to score %s: %s", symbol, exc)
@@ -144,6 +188,8 @@ class Scanner:
         self.wall_tracker.save()
         if self.flow_fetcher:
             self.flow_fetcher.save()
+        if self.flow_gate:
+            self.flow_gate.save()
 
         ranked_df    = rank_results(scores)
         leaderboards = leaderboard_summary(ranked_df)

@@ -64,3 +64,42 @@ class TestResampleToBars:
         ])
         bars = resample_to_bars(trades, timeframe="4h")
         assert len(bars) >= 2
+
+
+# ---------------------------------------------------------------------------
+# Sub-hourly timeframes
+# ---------------------------------------------------------------------------
+
+def test_minute_timeframes_translate_to_pandas_aliases():
+    """
+    pandas 2.2 repurposed "m" as month-end, so "5m" raises instead of
+    resampling. Exchange-style timeframes are the vocabulary used everywhere
+    else here, so they're translated at the boundary.
+    """
+    from src.data.trade_tape import _pandas_freq
+
+    assert _pandas_freq("5m") == "5min"
+    assert _pandas_freq("15m") == "15min"
+    assert _pandas_freq("1h") == "1h"
+    assert _pandas_freq("4h") == "4h"
+    assert _pandas_freq("1d") == "1d"
+
+
+def test_resample_produces_bars_on_a_minute_timeframe():
+    import numpy as np
+    import pandas as pd
+    from src.data.trade_tape import resample_to_bars
+
+    n = 600
+    trades = pd.DataFrame({
+        "transact_time": pd.date_range("2025-01-01", periods=n, freq="30s", tz="UTC"),
+        "price": np.linspace(100.0, 101.0, n),
+        "quantity": np.ones(n),
+        "is_buyer_maker": [True, False] * (n // 2),
+    })
+
+    bars = resample_to_bars(trades, "5m")
+    assert not bars.empty
+    assert len(bars) == 60          # 600 ticks * 30s = 5h -> sixty 5m bars
+    assert {"open", "high", "low", "close", "volume",
+            "buy_volume", "sell_volume"} <= set(bars.columns)

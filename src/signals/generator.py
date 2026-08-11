@@ -24,7 +24,10 @@ from src.config.config import (
     STRONG_SIGNAL_SCORE,
     ATR_TRAILING_STOP_MULTIPLIER,
     EMA_SHORT,
+    ENTRY_POST_ONLY,
+    EXECUTION_VENUE,
 )
+from src.execution.costs import cost_model_for
 from src.scoring.composite import ScoreResult
 from src.modules.wall_signal import WallSignalResult
 from src.indicators.trend import ema
@@ -47,10 +50,23 @@ class Signal:
     stop_loss: float
     resistance_level: float
 
+    # Profit targets. TP1 is a scale-out at 1R (risk-multiple parity with the
+    # stop); TP2 is the structural target — the nearest real resistance, or
+    # 2R if the book shows nothing overhead. These used to be computed and
+    # discarded, which is why alerts carried a stop but no target.
+    take_profit_1: float = 0.0
+    take_profit_2: float = 0.0
+
     # Risk metrics
-    risk_pct: float
-    reward_pct: float
-    risk_reward: float
+    risk_pct: float = 0.0
+    reward_pct: float = 0.0
+    risk_reward: float = 0.0
+
+    # Cost awareness — a target that doesn't clear the round-trip cost is not
+    # a target, it's a donation. `net_reward_pct` is reward after costs.
+    est_cost_pct: float = 0.0
+    net_reward_pct: float = 0.0
+    clears_costs: bool = True
 
     # Position sizing (OB-informed when available)
     max_safe_position_usd: float = 0.0
@@ -175,9 +191,37 @@ def generate_signal(
     )
 
     risk_pct   = max(0.001, (price - stop) / price)
-    target     = max(resistance, price * (1 + risk_pct * 2))
-    reward_pct = (target - price) / price
+
+    # TP1: 1R — scale out where reward first equals the risk taken.
+    # TP2: the structural target, i.e. the nearest genuine resistance in the
+    #      book, floored at 2R so a wall sitting almost on top of price
+    #      doesn't produce a target that isn't worth trading toward.
+    tp1    = price * (1 + risk_pct)
+    tp2    = max(resistance, price * (1 + risk_pct * 2))
+    reward_pct = (tp2 - price) / price
     rr         = round(reward_pct / risk_pct, 2)
+
+    # Charge the modelled round trip against the target. A signal whose full
+    # target barely clears its own execution cost is not tradeable, however
+    # good the setup looks — this is the check that was missing entirely.
+    cost_model = cost_model_for(
+        score.symbol,
+        venue=EXECUTION_VENUE,
+        entry_is_maker=ENTRY_POST_ONLY,
+        exit_is_maker=False,     # exits are taker: a stop must actually fill
+    )
+    est_cost_pct = cost_model.round_trip_pct(
+        entry_half_spread_pct=(slip_pct / 2) if slip_pct > 0 else None,
+    )
+    net_reward_pct = reward_pct * 100 - est_cost_pct
+    clears_costs = net_reward_pct > est_cost_pct   # target must beat cost by 2x
+
+    if not clears_costs:
+        logger.info(
+            "SUPPRESSED %s — target %.2f%% doesn't clear round-trip cost %.2f%% with margin",
+            score.symbol, reward_pct * 100, est_cost_pct,
+        )
+        return None
 
     strength = "strong" if score.final_score >= STRONG_SIGNAL_SCORE else "standard"
 
@@ -196,9 +240,14 @@ def generate_signal(
         entry_zone_high=round(entry_high, 8),
         stop_loss=round(stop, 8),
         resistance_level=round(resistance, 8),
+        take_profit_1=round(tp1, 8),
+        take_profit_2=round(tp2, 8),
         risk_pct=round(risk_pct * 100, 2),
         reward_pct=round(reward_pct * 100, 2),
         risk_reward=rr,
+        est_cost_pct=round(est_cost_pct, 4),
+        net_reward_pct=round(net_reward_pct, 2),
+        clears_costs=clears_costs,
         max_safe_position_usd=round(max_safe_pos, 2),
         estimated_slippage_pct=round(slip_pct, 4),
         final_score=score.final_score,
@@ -233,10 +282,14 @@ def format_signal_table(signals: List[Signal]) -> pd.DataFrame:
             "Price": s.current_price,
             "Entry Low": s.entry_zone_low,
             "Entry High": s.entry_zone_high,
+            "TP1": s.take_profit_1,
+            "TP2": s.take_profit_2,
             "Stop Loss": s.stop_loss,
             "Risk %": s.risk_pct,
             "Reward %": s.reward_pct,
             "R:R": s.risk_reward,
+            "Cost %": s.est_cost_pct,
+            "Net Reward %": s.net_reward_pct,
             "Resistance": s.resistance_level,
             "Max Position $": s.max_safe_position_usd,
             "Slippage %": s.estimated_slippage_pct,
