@@ -41,6 +41,7 @@ from src.backtesting.engine import (
     _build_equity_curve, simulate_exit,
 )
 from src.backtesting.metrics import compute_all_metrics
+from src.execution.costs import cost_model_for
 
 MIN_TRAINING_ROWS_TO_FIT = 20
 
@@ -229,9 +230,23 @@ def _precompute_symbol(
     effective_signals["is_setup"] = False
     effective_signals["risk_pct"] = cfg.risk_per_trade_pct
 
+    # Round-trip cost charged against this symbol's ML training labels, so
+    # `win` means "profitable after fees" rather than "closed above entry".
+    # Computed without the impact term (which needs a specific entry bar's
+    # volume) — fees and spread dominate at the sizes this trades anyway.
+    label_cost_pct = 0.0
+    if cfg.apply_costs:
+        label_cost_pct = cost_model_for(
+            symbol,
+            venue=cfg.venue,
+            entry_is_maker=cfg.entry_is_maker,
+            exit_is_maker=cfg.exit_is_maker,
+        ).round_trip_pct()
+
     return {
         "bars": bars,
         "atr_ser": atr_ser,
+        "label_cost_pct": label_cost_pct,
         "raw_signals": raw_signals,
         "effective_signals": effective_signals,
         "feat": feat,
@@ -370,7 +385,11 @@ def run_walk_forward(
                     trailing_rates.append(_trailing_win_rate(p["trailing_wins"]))
                     trailing_pnls_feat.append(_trailing_avg_pnl(p["trailing_pnls"]))
                     trailing_samples.append(len(p["trailing_wins"]))
-                    pnl = simulate_exit(bars, p["atr_ser"], int(pos), atr_mult=cfg.atr_trailing_stop_mult)
+                    pnl = simulate_exit(
+                        bars, p["atr_ser"], int(pos),
+                        atr_mult=cfg.atr_trailing_stop_mult,
+                        cost_pct=p["label_cost_pct"],
+                    )
                     if pnl is None:
                         labels.append(None)
                         continue
