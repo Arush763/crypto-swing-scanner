@@ -1,108 +1,108 @@
 {
-  "scan_time": "2026-08-12T09:11:53.110689+00:00",
+  "scan_time": "2026-08-12T13:08:24.946655+00:00",
   "assets_scanned": 11,
   "signals_count": 0,
-  "duration_s": 21.73,
+  "duration_s": 21.41,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "SOL/USD",
-      "score": 48.71,
-      "trend": 100.0,
-      "momentum": 19.37,
-      "liquidity": 21.48,
-      "wall_signal": false,
-      "price": 76.23
-    },
-    {
-      "symbol": "SOL/USDT",
-      "score": 48.71,
-      "trend": 100.0,
-      "momentum": 19.64,
-      "liquidity": 23.69,
-      "wall_signal": false,
-      "price": 76.34
-    },
-    {
       "symbol": "ETH/USD",
-      "score": 47.39,
-      "trend": 60.0,
-      "momentum": 11.7,
-      "liquidity": 14.07,
+      "score": 49.28,
+      "trend": 80.0,
+      "momentum": 11.96,
+      "liquidity": 15.5,
       "wall_signal": true,
-      "price": 1891.42
-    },
-    {
-      "symbol": "DOGE/USDT",
-      "score": 44.68,
-      "trend": 80.9,
-      "momentum": 26.54,
-      "liquidity": 31.3,
-      "wall_signal": false,
-      "price": 0.07166
-    },
-    {
-      "symbol": "XRP/USD",
-      "score": 31.67,
-      "trend": 0.0,
-      "momentum": 12.91,
-      "liquidity": 24.26,
-      "wall_signal": true,
-      "price": 1.0183
+      "price": 1908.96
     },
     {
       "symbol": "ETH/USDT",
-      "score": 30.1,
-      "trend": 60.0,
-      "momentum": 11.68,
-      "liquidity": 12.13,
-      "wall_signal": false,
-      "price": 1893.29
-    },
-    {
-      "symbol": "BTC/USDT",
-      "score": 28.34,
-      "trend": 20.0,
-      "momentum": 10.0,
-      "liquidity": 15.13,
+      "score": 48.7,
+      "trend": 80.0,
+      "momentum": 11.89,
+      "liquidity": 14.65,
       "wall_signal": true,
-      "price": 63860.6
+      "price": 1910.16
     },
     {
-      "symbol": "NEAR/USDT",
-      "score": 23.04,
-      "trend": 15.0,
-      "momentum": 17.62,
-      "liquidity": 29.21,
+      "symbol": "SOL/USD",
+      "score": 48.3,
+      "trend": 100.0,
+      "momentum": 19.09,
+      "liquidity": 23.53,
       "wall_signal": false,
-      "price": 1.6366
+      "price": 76.58
     },
     {
-      "symbol": "UNI/USDT",
-      "score": 20.53,
-      "trend": 20.0,
-      "momentum": 7.26,
-      "liquidity": 25.71,
+      "symbol": "SOL/USDT",
+      "score": 47.83,
+      "trend": 100.0,
+      "momentum": 18.98,
+      "liquidity": 24.91,
       "wall_signal": false,
-      "price": 3.5376
+      "price": 76.63
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "score": 36.23,
+      "trend": 55.75,
+      "momentum": 21.57,
+      "liquidity": 31.28,
+      "wall_signal": false,
+      "price": 0.0715
     },
     {
       "symbol": "BTC/USD",
-      "score": 18.28,
+      "score": 31.7,
       "trend": 20.0,
-      "momentum": 10.0,
-      "liquidity": 17.61,
+      "momentum": 10.01,
+      "liquidity": 19.36,
+      "wall_signal": true,
+      "price": 64044.0
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "score": 30.8,
+      "trend": 35.0,
+      "momentum": 22.85,
+      "liquidity": 29.45,
       "wall_signal": false,
-      "price": 63797.32
+      "price": 1.6536
+    },
+    {
+      "symbol": "BTC/USDT",
+      "score": 25.31,
+      "trend": 45.0,
+      "momentum": 10.01,
+      "liquidity": 16.53,
+      "wall_signal": false,
+      "price": 64101.0
+    },
+    {
+      "symbol": "UNI/USDT",
+      "score": 19.61,
+      "trend": 20.0,
+      "momentum": 7.56,
+      "liquidity": 25.08,
+      "wall_signal": false,
+      "price": 3.5566
+    },
+    {
+      "symbol": "XRP/USD",
+      "score": 16.29,
+      "trend": 0.0,
+      "momentum": 11.96,
+      "liquidity": 24.28,
+      "wall_signal": false,
+      "price": 1.0171
     },
     {
       "symbol": "XRP/USDT",
-      "score": 12.28,
+      "score": 12.3,
       "trend": 0.0,
-      "momentum": 12.92,
-      "liquidity": 14.52,
+      "momentum": 11.96,
+      "liquidity": 12.75,
       "wall_signal": false,
-      "price": 1.01924
+      "price": 1.01796
     }
   ]
 }
