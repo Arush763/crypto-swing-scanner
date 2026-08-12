@@ -1,0 +1,65 @@
+name: Crowd Short Signal
+
+# Runs the one validated strategy in this repo: short symbols whose retail
+# long/short account ratio is at an extreme against their own history.
+# Backtest (Binance data, 12 majors, 365d): +0.429%/trade out-of-sample,
+# t=2.24, beating an always-short benchmark by +0.509% (t=2.58).
+#
+# Hourly, because the signal is defined on 1h bars. It alerts only — no
+# orders are placed. Perp order routing is not built; the executor in this
+# repo is spot-long-only.
+#
+# DATA SOURCE LIMITATION
+# ----------------------
+# The signal is validated on Binance futures positioning. Binance returns 451
+# to US IPs, and GitHub's runners are US-based (probed: Virginia, HTTP 451),
+# so this workflow reads OKX instead. OKX's ratio only tracks Binance's
+# closely for BTC/ETH/SOL (rank correlation 0.98/0.92/0.89); for other majors
+# it is weak or inverted (AVAX -0.41). The runner therefore refuses to signal
+# on unvalidated symbols by default, and those three alone are a weaker
+# sample than the full backtest (58 OOS trades, t=1.14).
+#
+# Every symbol's reading is still RECORDED each run, so OKX-native history
+# accumulates and the signal can eventually be validated on the data it will
+# actually trade from, rather than on an assumption that the venues agree.
+
+on:
+  schedule:
+    - cron: "5 * * * *"      # hourly, just after the bar closes
+  workflow_dispatch:
+
+jobs:
+  crowd:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # persists accumulated positioning history
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run crowd-short signal
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/run_crowd_short.py --once --source okx
+
+      - name: Commit accumulated positioning history
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/state/positioning_history.json || true
+          git diff --staged --quiet || git commit -m "chore: positioning history $(date -u '+%Y-%m-%d %H:%M UTC')"
+          # The 4-hourly scanner writes to this branch too; rebase rather than
+          # fail the run when it has moved underneath us.
+          git pull --rebase --autostash origin master || true
+          git push || true
