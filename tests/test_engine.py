@@ -132,7 +132,11 @@ def test_max_single_trade_loss_caps_a_wide_atr_trade(monkeypatch):
     assert len(trades) == 1
     assert trades[0].exit_reason == "max_single_trade_loss"
     assert trades[0].exit_bar == 66
-    assert trades[0].pnl_pct == pytest.approx(-15.0)
+    # The cap acts on the price move, so it's the gross figure that lands on
+    # -15%; pnl_pct is now net of the modelled round-trip cost.
+    assert trades[0].gross_pnl_pct == pytest.approx(-15.0)
+    assert trades[0].pnl_pct == pytest.approx(-15.0 - trades[0].cost_pct)
+    assert trades[0].cost_pct > 0
 
 
 def test_no_max_single_trade_loss_lets_the_wide_atr_stop_ride(monkeypatch):

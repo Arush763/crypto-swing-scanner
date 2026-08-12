@@ -213,14 +213,64 @@ def dedupe_by_binance_symbol(symbols: List[str]) -> List[str]:
     return list(chosen.values())
 
 
-def resample_to_bars(trades: pd.DataFrame, timeframe: str = "4h") -> pd.DataFrame:
+# pandas 2.2 removed "m" as a minute alias — it now means month-end, and any
+# sub-hourly timeframe string like "5m" raises rather than silently resampling
+# to the wrong thing. Exchange-style timeframes are the vocabulary used
+# everywhere else in this repo, so translate at the boundary instead of
+# forcing pandas offset aliases through the config.
+def _pandas_freq(timeframe: str) -> str:
+    tf = timeframe.strip().lower()
+    if tf.endswith("m") and not tf.endswith("mo"):
+        return f"{tf[:-1]}min"
+    return tf
+
+
+_BASE_BAR_COLUMNS = [
+    "open", "high", "low", "close", "volume", "buy_volume", "sell_volume",
+]
+
+_MICRO_BAR_COLUMNS = [
+    "trade_count", "avg_trade_usd", "max_trade_usd",
+    "whale_buy_volume", "whale_sell_volume", "whale_trade_count",
+]
+
+# A trade counts as a "whale print" if its notional sits in the top 1% of
+# that day's trades for that symbol. A per-day quantile rather than a fixed
+# dollar threshold, because $50k is a block in one token and noise in BTC,
+# and because typical trade size drifts a lot over a year.
+WHALE_QUANTILE = 0.99
+
+
+def resample_to_bars(
+    trades: pd.DataFrame,
+    timeframe: str = "4h",
+    microstructure: bool = True,
+) -> pd.DataFrame:
     """
     Resample raw tick trades into OHLCV bars, split into buy-aggressor and
     sell-aggressor volume (the tape-based stand-in for order-book pressure).
-    """
-    if trades.empty:
-        return pd.DataFrame(columns=["open", "high", "low", "close", "volume", "buy_volume", "sell_volume"])
 
+    With `microstructure=True` (default) each bar additionally carries the
+    composition of the flow that formed it, not just its net size:
+
+      trade_count       how many prints — separates one block from a
+                        thousand retail clips of the same total volume
+      avg_trade_usd     mean print size
+      max_trade_usd     largest single print in the bar
+      whale_*_volume    aggressor-split notional from top-1% prints only
+      whale_trade_count how many such prints
+
+    These exist because net volume delta is a lossy summary of order flow.
+    $10M of buying arriving as 50,000 small prints is retail chasing; the
+    same $10M in 30 prints is one participant with a reason. Only the second
+    tends to precede a large move, and a buy_volume/sell_volume split alone
+    cannot tell them apart.
+    """
+    empty_cols = _BASE_BAR_COLUMNS + (_MICRO_BAR_COLUMNS if microstructure else [])
+    if trades.empty:
+        return pd.DataFrame(columns=empty_cols)
+
+    timeframe = _pandas_freq(timeframe)
     df = trades.set_index("transact_time").sort_index()
     notional = df["price"] * df["quantity"]
     buy_notional  = notional.where(~df["is_buyer_maker"], 0.0)   # taker bought
@@ -230,5 +280,24 @@ def resample_to_bars(trades: pd.DataFrame, timeframe: str = "4h") -> pd.DataFram
     bars["volume"]      = notional.resample(timeframe).sum()
     bars["buy_volume"]  = buy_notional.resample(timeframe).sum()
     bars["sell_volume"] = sell_notional.resample(timeframe).sum()
+
+    if microstructure:
+        resampler = notional.resample(timeframe)
+        bars["trade_count"]   = resampler.count()
+        bars["avg_trade_usd"] = resampler.mean()
+        bars["max_trade_usd"] = resampler.max()
+
+        # Threshold is computed over the whole frame passed in — one UTC day
+        # per call from _fetch_day_bars — so it adapts to the symbol and the
+        # day without peeking across days.
+        threshold = float(notional.quantile(WHALE_QUANTILE)) if len(notional) else 0.0
+        is_whale = notional >= threshold if threshold > 0 else notional > np.inf
+
+        whale_buy  = buy_notional.where(is_whale, 0.0)
+        whale_sell = sell_notional.where(is_whale, 0.0)
+        bars["whale_buy_volume"]  = whale_buy.resample(timeframe).sum()
+        bars["whale_sell_volume"] = whale_sell.resample(timeframe).sum()
+        bars["whale_trade_count"] = is_whale.resample(timeframe).sum()
+
     bars = bars.dropna(subset=["open", "high", "low", "close"])
     return bars

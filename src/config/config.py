@@ -25,6 +25,36 @@ MIN_MARKET_CAP_USD: float = 50_000_000       # $50M minimum market cap
 MIN_HISTORY_DAYS: int = 60                   # Minimum candle history required
 
 # ---------------------------------------------------------------------------
+# Majors-only universe restriction
+# ---------------------------------------------------------------------------
+# A $3M-daily-volume filter admits assets whose bid/ask spread is 25bps or
+# worse. Round-tripping one of those costs ~0.32% against a strategy whose
+# measured gross edge is ~0.24%/trade — the position is underwater the
+# instant it opens, and no amount of signal quality recovers that.
+#
+# Restricting to majors is what makes frequent trading arguable at all: on
+# BTC/ETH the spread term is ~0.5bps rather than 25bps, so cost is dominated
+# by fees, which post-only entries can halve. See src/execution/costs.py.
+#
+# Set MAJORS_ONLY = False to restore the old wide-universe behaviour.
+MAJORS_ONLY: bool = True
+
+# Base assets permitted when MAJORS_ONLY is on. Deliberately conservative —
+# membership is by sustained real book depth, not market-cap ranking, since
+# it's depth that determines what a round trip actually costs.
+MAJOR_BASES: List[str] = [
+    "BTC", "ETH",                                    # mega tier
+    "SOL", "XRP", "BNB", "ADA", "DOGE", "AVAX",      # large tier
+    "LINK", "DOT", "LTC", "BCH", "TRX", "UNI",
+    "ATOM", "XLM", "NEAR", "APT", "ARB", "OP", "SUI",
+]
+
+# Volume floor applied to majors. Far higher than MIN_DAILY_VOLUME_USD
+# because the point is depth, not mere listing — a major with only $3M of
+# daily turnover on a given venue is a thin book wearing a familiar ticker.
+MAJORS_MIN_DAILY_VOLUME_USD: float = 25_000_000
+
+# ---------------------------------------------------------------------------
 # EMA periods (bar-count lookbacks — same meaning on any timeframe)
 # ---------------------------------------------------------------------------
 EMA_SHORT: int = 20
@@ -167,8 +197,27 @@ class TapeBacktestConfig:
     ema_long: int  = EMA_LONG
     initial_capital: float = 10_000.0
     risk_per_trade_pct: float = 0.02
-    commission_pct: float = 0.001
     btc_regime_filter: bool = True          # Only enter when BTC > 50/200 EMA
+
+    # ---- Trading costs -------------------------------------------------
+    # This replaces the old `commission_pct` field, which was declared here
+    # but referenced nowhere in the engine — every backtest this repo has
+    # produced was gross of fees, spread, and slippage. See
+    # src/execution/costs.py for the decomposition and why it matters far
+    # more at high frequency than at 4h.
+    #
+    # `apply_costs=False` reproduces the old (gross) behaviour, which is
+    # useful only for comparing against historical results — never for
+    # judging whether a strategy is tradeable.
+    apply_costs: bool = True
+    venue: str = "okx"
+    entry_is_maker: bool = False
+    exit_is_maker: bool = False
+    # Notional per trade used for the market-impact term. Impact is
+    # negligible for small orders on majors, which is why this defaults low;
+    # raise it to see how the edge degrades as size grows.
+    order_size_usd: float = 1_000.0
+    impact_coefficient: float = 10.0
 
     # Core detection thresholds — previously hardcoded to detect_tape_signals's
     # own module-level defaults regardless of this config; exposed here so a
@@ -254,6 +303,97 @@ class TapeBacktestConfig:
     # (default — matches prior behaviour exactly).
     max_single_trade_loss_pct: Optional[float] = None
 
+
+# ---------------------------------------------------------------------------
+# Flow-concentration gate (src/modules/flow_gate.py)
+# ---------------------------------------------------------------------------
+# Suppresses entries taken while volume is dominated by a few very large
+# prints. Measured over 90 days across 12 majors, a high whale share precedes
+# SMALLER subsequent moves — monotonically across deciles, in both train and
+# test, at every timeframe tested. Applied as a filter to the existing tape
+# signal it moved gross P&L from -0.052%/trade (gate shut) to +0.224% (gate
+# open) and win rate from 27.9% to 39.1%.
+#
+# Note this runs opposite to the usual intuition that whale activity signals
+# an imminent move. The reading that fits the data: concentrated prints are
+# liquidity being consumed (a block crossing, a liquidation absorbed), which
+# is the move ending rather than starting.
+#
+# DISABLED after full-year validation. The filter looked net-positive at 90d
+# (+0.059%/trade) and 200d (+0.125%), but on 365 days across 12 majors it went
+# NEGATIVE: -0.099%/trade on 221 out-of-sample trades, gross t=1.63, net
+# t=-1.22. The earlier samples were inside their own confidence intervals the
+# whole time — at 200d the net CI was [-0.162%, +0.411%], which contains the
+# year's result.
+#
+# What survives is discrimination, not profit: gate-open trades still average
+# +0.108% gross vs -0.061% when shut (a +0.169% swing, 33.8% vs 28.4% win
+# rate) across 616 trades. So whale_share is a real signal and a poor
+# money-maker — filtering a losing strategy more selectively does not make it
+# a winning one. Left in the codebase, off by default. See
+# scripts/study_gate_as_filter.py to re-check.
+FLOW_GATE_ENABLED: bool = False
+
+# Percentile of a symbol's OWN whale-share history above which entries are
+# suppressed. Per-symbol because whale share differs ~5x across majors (90d
+# 30th percentile: BTC 0.374, LINK 0.082) — a fixed cutoff would suppress
+# every BTC signal and no LINK signal.
+#   0.30 = aggressive (only the broadest-participation 30% of readings trade)
+#   0.50 = moderate, the default
+FLOW_GATE_MAX_PERCENTILE: float = 0.50
+
+# ---------------------------------------------------------------------------
+# Execution / auto-trading
+# ---------------------------------------------------------------------------
+# Venue used for both cost modelling and live order routing. OKX is the
+# default because it's geo-accessible from where this scanner runs (unlike
+# binance/bybit — see EXCHANGES above), has deep major-pair books, and
+# offers a demo-trading mode for validating the executor without capital.
+EXECUTION_VENUE: str = "okx"
+
+# Post-only (maker) entries. This is the single largest cost lever available:
+# it drops the entry leg from taker fee + half-spread to just the maker fee.
+# The tradeoff is fill uncertainty — a post-only order that never gets
+# crossed simply doesn't trade, so some signals are missed rather than
+# entered late. At high frequency that tradeoff strongly favours post-only.
+ENTRY_POST_ONLY: bool = True
+
+# How long to leave an unfilled post-only entry resting before abandoning the
+# signal. Past this the setup that justified the entry has usually decayed.
+ENTRY_LIMIT_TIMEOUT_SECONDS: int = 90
+
+# ---- Hard risk limits (enforced by src/execution/executor.py) -------------
+# These are circuit breakers, not suggestions. The executor refuses to open a
+# position that would violate any of them, and the daily-loss breaker halts
+# all new entries until the next UTC day once tripped.
+MAX_CONCURRENT_POSITIONS: int = 3
+MAX_POSITION_USD: float = 500.0             # Per-position notional ceiling
+MAX_DAILY_LOSS_USD: float = 100.0           # Halt trading for the day at this realised loss
+MAX_DAILY_TRADES: int = 60                  # Runaway-loop guard
+RISK_PER_TRADE_PCT: float = 0.01            # Fraction of equity risked per trade
+
+# Live trading is opt-in and requires BOTH this flag and API credentials in
+# the environment. Default is paper: orders are simulated against the live
+# book, nothing is sent to the exchange. Never flip this to True without
+# having watched the paper log first.
+LIVE_TRADING_ENABLED: bool = False
+
+# ---------------------------------------------------------------------------
+# High-frequency scan loop
+# ---------------------------------------------------------------------------
+# The wall signal reads order-book state changes between consecutive scans.
+# Sampling that every 4h (the old GitHub Actions cron) means almost every
+# absorption/repulsion event is born and dies unobserved between snapshots —
+# a structural mismatch between the signal's timescale and the observation
+# rate, and a large part of why so few signals ever fired.
+HFT_SCAN_INTERVAL_SECONDS: int = 60
+HFT_SCAN_TIMEFRAME: str = "5m"
+HFT_OHLCV_LIMIT: int = 500
+# Lower than SIGNAL_SCORE_THRESHOLD (80): over 40 logged scan cycles the top
+# composite score was 59-79, so an 80 gate fired roughly once a week. The
+# quality bar at high frequency is enforced by the cost check and the ML
+# filter, not by a score threshold the scoring function rarely reaches.
+HFT_SCORE_THRESHOLD: float = 62.0
 
 # ---------------------------------------------------------------------------
 # Dashboard

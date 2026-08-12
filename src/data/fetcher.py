@@ -21,6 +21,9 @@ import pandas as pd
 
 from src.config.config import (
     EXCHANGES,
+    MAJOR_BASES,
+    MAJORS_MIN_DAILY_VOLUME_USD,
+    MAJORS_ONLY,
     MIN_DAILY_VOLUME_USD,
     MIN_HISTORY_DAYS,
     OHLCV_LIMIT,
@@ -173,7 +176,9 @@ class MarketDataFetcher:
         self,
         exchange_ids: List[str] = EXCHANGES,
         cache_dir: Optional[Path] = None,
+        majors_only: bool = MAJORS_ONLY,
     ) -> None:
+        self.majors_only = majors_only
         self.cache_dir = cache_dir or Path("data/cache")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.clients: Dict[str, ExchangeClient] = {}
@@ -255,6 +260,14 @@ class MarketDataFetcher:
         """
         volume_map: Dict[str, Tuple[float, str]] = {}  # symbol -> (volume, exchange)
 
+        # When majors-only is on, the volume floor is raised as well: the
+        # restriction exists to guarantee a tight book, and a whitelisted
+        # ticker trading $3M/day on some venue does not have one.
+        majors = set(MAJOR_BASES) if self.majors_only else None
+        effective_min_volume = (
+            max(min_volume, MAJORS_MIN_DAILY_VOLUME_USD) if self.majors_only else min_volume
+        )
+
         for exchange_id, client in self.clients.items():
             logger.info("Loading tickers from %s…", exchange_id)
             try:
@@ -267,13 +280,20 @@ class MarketDataFetcher:
                 # Keep only USDT/USD pairs with sufficient volume
                 if not (symbol.endswith("/USDT") or symbol.endswith("/USD")):
                     continue
+                if majors is not None and symbol.split("/")[0].upper() not in majors:
+                    continue
                 quote_vol = ticker.get("quoteVolume") or 0.0
-                if quote_vol < min_volume:
+                if quote_vol < effective_min_volume:
                     continue
                 existing_vol, _ = volume_map.get(symbol, (0.0, ""))
                 if quote_vol > existing_vol:
                     volume_map[symbol] = (quote_vol, exchange_id)
 
+        if self.majors_only:
+            logger.info(
+                "Majors-only universe: %d symbols passed (>= $%.0fM daily volume)",
+                len(volume_map), effective_min_volume / 1e6,
+            )
         return {sym: exc for sym, (_, exc) in volume_map.items()}
 
     def _fetch_with_cache(

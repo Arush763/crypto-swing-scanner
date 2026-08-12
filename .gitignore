@@ -7,3 +7,4 @@ __pycache__/
 *.egg-info/
 dist/
 .pytest_cache/
+data/metrics_cache/

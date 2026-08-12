@@ -39,6 +39,12 @@ WALL_SCAN_PCT = 0.05      # Look for walls within ±5% of current price
 STOP_HUNT_IMBALANCE = -0.6  # Heavily ask-heavy while bullish = stop-hunt risk
 SLIPPAGE_FRACTION = 0.40  # Use 40% of depth to stay under 1% slippage
 
+# A print counts as "whale" if its notional is in the top 1% of the window
+# being measured. Matches WHALE_QUANTILE in src/data/trade_tape.py so the
+# live figure and the backtested one mean the same thing — if these ever
+# diverge, the live filter stops matching what was validated.
+WHALE_PRINT_QUANTILE = 0.99
+
 # Per-exchange minimum interval between REST calls (seconds). Shared by both
 # OrderBookFetcher and LiveFlowFetcher since they hit the same exchanges.
 RATE_LIMITS = {
@@ -385,6 +391,36 @@ class FlowSignals:
     sell_volume_usd: float = 0.0
     trade_count: int = 0
 
+    # Notional executed by the largest prints in this window (top
+    # WHALE_PRINT_QUANTILE by size).
+    whale_volume_usd: float = 0.0
+
+    @property
+    def total_volume_usd(self) -> float:
+        return self.buy_volume_usd + self.sell_volume_usd
+
+    @property
+    def whale_share(self) -> float:
+        """
+        Fraction of this window's volume executed by its largest prints.
+
+        Measured over a year of tick data across 12 majors, this is the most
+        robust single relationship found in the order-flow study: a HIGH
+        whale share precedes SMALLER subsequent moves, monotonically across
+        deciles, in both train and test at every timeframe tested (lift 0.75x
+        at 15m, 0.36x at 4h).
+
+        The reading that fits: concentrated large prints are liquidity being
+        consumed — a block crossing, a liquidation being absorbed — which is
+        the move ending, not beginning. Broad participation across many
+        prints is what precedes continuation. Note this runs opposite to the
+        common intuition that "whales moving = something is about to happen".
+
+        See scripts/study_large_moves.py and scripts/study_combo.py.
+        """
+        total = self.total_volume_usd
+        return (self.whale_volume_usd / total) if total > 0 else 0.0
+
     @property
     def buy_dominant(self) -> bool:
         from src.config.config import FLOW_DOMINANCE_RATIO
@@ -481,17 +517,30 @@ class LiveFlowFetcher:
 
         buy_usd = 0.0
         sell_usd = 0.0
+        notionals = []
         for t in trades:
             notional = (t.get("price") or 0.0) * (t.get("amount") or 0.0)
+            notionals.append(notional)
             side = t.get("side")
             if side == "buy":
                 buy_usd += notional
             elif side == "sell":
                 sell_usd += notional
 
+        # Concentration of this window's flow into its largest prints. See
+        # FlowSignals.whale_share for why this is tracked and which way it
+        # points — it is measured per window rather than against a fixed
+        # dollar threshold, because block size differs by orders of magnitude
+        # between BTC and a mid-cap and drifts over time.
+        whale_usd = 0.0
+        if notionals:
+            cutoff = float(np.quantile(notionals, WHALE_PRINT_QUANTILE))
+            whale_usd = sum(n for n in notionals if n >= cutoff)
+
         return FlowSignals(
             symbol=symbol,
             buy_volume_usd=round(buy_usd, 2),
             sell_volume_usd=round(sell_usd, 2),
             trade_count=len(trades),
+            whale_volume_usd=round(whale_usd, 2),
         )

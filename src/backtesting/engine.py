@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 
 from src.config.config import TapeBacktestConfig, ATR_TRAILING_STOP_MULTIPLIER
+from src.execution.costs import cost_model_for
 from src.indicators.trend import ema
 from src.indicators.volatility import atr as compute_atr
 from src.modules.tape_signal import detect_tape_signals
@@ -41,7 +42,13 @@ class Trade:
     exit_bar: int = -1
     exit_price: float = 0.0
     exit_reason: str = ""
+    # NOTE: `pnl_pct` is NET of trading costs once apply_costs is on (the
+    # default). Every metric downstream reads this field, so making it net is
+    # what stops the reported numbers from being systematically optimistic.
+    # The pre-cost figure is preserved in `gross_pnl_pct` for comparison.
     pnl_pct: float = 0.0
+    gross_pnl_pct: float = 0.0
+    cost_pct: float = 0.0
     holding_bars: int = 0
     is_open: bool = True
     signal_event: str = ""   # "ask_absorption" | "bid_repulsion"
@@ -54,6 +61,7 @@ def simulate_exit(
     atr_ser: pd.Series,
     signal_bar_idx: int,
     atr_mult: float = ATR_TRAILING_STOP_MULTIPLIER,
+    cost_pct: float = 0.0,
 ) -> Optional[float]:
     """
     Simulate the ATR trailing-stop exit for a single hypothetical entry
@@ -68,7 +76,13 @@ def simulate_exit(
     atr_trailing_stop_mult to keep training labels consistent with whatever
     exit width that backtest actually uses.
 
-    Returns None if there isn't enough data left to enter.
+    `cost_pct` is the round-trip trading cost, subtracted from the returned
+    percentage. Pass it whenever the result is used as an ML training label:
+    callers derive `win = pnl > 0` from this, and on a gross figure that
+    labels every setup clearing zero-but-not-the-fee as a winner. The filter
+    then learns to select trades that lose money net — an error that grows
+    with frequency, since cost is a larger share of a smaller move. Defaults
+    to 0.0 so existing non-label callers are unaffected.
     """
     close = bars["close"]
     open_ = bars["open"]
@@ -89,9 +103,9 @@ def simulate_exit(
             trailing_stop = highest_close - atr_mult * current_atr
         if price < trailing_stop:
             exit_price = float(open_.iloc[i + 1])
-            return (exit_price - entry_price) / entry_price * 100
+            return (exit_price - entry_price) / entry_price * 100 - cost_pct
 
-    return (float(close.iloc[-1]) - entry_price) / entry_price * 100
+    return (float(close.iloc[-1]) - entry_price) / entry_price * 100 - cost_pct
 
 
 def _daily_trend_bull(bars: pd.DataFrame, ema_period: int) -> np.ndarray:
@@ -220,6 +234,10 @@ def _step_bar_range(
         state.entry_risk_pct = float(signals["risk_pct"].iloc[i]) if "risk_pct" in signals.columns else None
         state.in_trade      = True
 
+    # Charge costs here rather than in _run_single_asset: the walk-forward
+    # engine drives this function directly, week by week, and would otherwise
+    # produce gross-of-cost trades while the plain backtest produced net ones.
+    apply_cost_model(trades, bars, cfg)
     return trades
 
 
@@ -292,7 +310,7 @@ def _run_single_asset(
 
     if state.in_trade and len(close) > 0:
         price = float(close.iloc[-1])
-        trades.append(Trade(
+        tail_trade = Trade(
             symbol=symbol,
             entry_bar=state.entry_bar,
             entry_price=state.entry_price,
@@ -305,9 +323,64 @@ def _run_single_asset(
             signal_event=state.entry_event,
             entry_time=bars.index[state.entry_bar],
             risk_pct=state.entry_risk_pct,
-        ))
+        )
+        # Costed separately from the loop above, which already charged the
+        # trades it closed — applying the model twice would double-bill them.
+        apply_cost_model([tail_trade], bars, cfg)
+        trades.append(tail_trade)
 
     return trades
+
+
+def apply_cost_model(
+    trades: List[Trade],
+    bars: pd.DataFrame,
+    cfg: TapeBacktestConfig,
+) -> None:
+    """
+    Charge each trade its round-trip cost, in place.
+
+    Sets `gross_pnl_pct` to the raw price return, `cost_pct` to the modelled
+    round-trip cost, and rewrites `pnl_pct` as the net of the two. Every
+    metric in metrics.py reads `pnl_pct`, so doing the deduction here means
+    win rate, expectancy, profit factor and the equity curve all become
+    net-of-cost without touching any of those call sites.
+
+    The impact term is sized against the dollar volume of the bar the trade
+    entered on, so a signal that fires during a thin overnight session is
+    correctly charged more than the same signal firing at peak liquidity.
+    """
+    if not trades:
+        return
+
+    for t in trades:
+        t.gross_pnl_pct = t.pnl_pct
+
+        if not cfg.apply_costs:
+            t.cost_pct = 0.0
+            continue
+
+        model = cost_model_for(
+            t.symbol,
+            venue=cfg.venue,
+            entry_is_maker=cfg.entry_is_maker,
+            exit_is_maker=cfg.exit_is_maker,
+        )
+        model.impact_coefficient = cfg.impact_coefficient
+
+        # Dollar volume of the entry bar, for the participation-rate impact
+        # term. Falls back to 0 (no impact charged, fees and spread still
+        # apply) when the bar is missing or volume data is absent.
+        ref_volume_usd = 0.0
+        if 0 <= t.entry_bar < len(bars):
+            row = bars.iloc[t.entry_bar]
+            ref_volume_usd = float(row.get("volume", 0.0)) * float(row.get("close", 0.0))
+
+        t.cost_pct = model.round_trip_pct(
+            order_size_usd=cfg.order_size_usd,
+            reference_volume_usd=ref_volume_usd,
+        )
+        t.pnl_pct = t.gross_pnl_pct - t.cost_pct
 
 
 def exclude_dominant_trades(trades: List[Trade], max_profit_share: float = 1 / 3) -> List[Trade]:
