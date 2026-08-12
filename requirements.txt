@@ -6,6 +6,10 @@ scikit-learn>=1.4.0   # ML signal filter (src/modules/signal_filter.py)
 
 # Exchange connectivity
 ccxt>=4.3.0
+# Used directly by notifications/telegram.py, data/futures_metrics.py and
+# data/positioning.py. It has always arrived transitively via ccxt; declared
+# explicitly so a future dependency change cannot silently break the bot.
+requests>=2.31.0
 
 # Dashboard
 streamlit>=1.35.0
