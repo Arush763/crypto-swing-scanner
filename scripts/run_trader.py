@@ -37,6 +37,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# logs/ is gitignored and so absent on a fresh checkout; a FileHandler against
+# a missing directory raises before logging is configured.
+Path("logs").mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",

@@ -29,6 +29,10 @@ from pathlib import Path
 # Logging setup
 # ---------------------------------------------------------------------------
 
+# logs/ is gitignored, so a fresh clone has no such directory and the
+# FileHandler below raises at import time before anything runs.
+Path("logs").mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",

@@ -41,6 +41,11 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
+# logs/ is gitignored, so it does not exist on a fresh CI runner — a
+# FileHandler pointed at a missing directory raises before any logging is set
+# up, which fails the run with a stack trace and no output.
+Path("logs").mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
