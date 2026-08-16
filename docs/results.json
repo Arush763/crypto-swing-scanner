@@ -1,36 +1,36 @@
 {
-  "scan_time": "2026-08-16T08:29:03.679680+00:00",
+  "scan_time": "2026-08-16T12:38:02.215054+00:00",
   "assets_scanned": 3,
   "signals_count": 0,
-  "duration_s": 15.81,
+  "duration_s": 17.37,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "BTC/USDT",
-      "score": 15.19,
+      "symbol": "UNI/USDT",
+      "score": 14.71,
       "trend": 0.0,
-      "momentum": 10.0,
-      "liquidity": 16.06,
+      "momentum": 8.55,
+      "liquidity": 29.07,
       "wall_signal": false,
-      "price": 63067.6
+      "price": 3.278
     },
     {
-      "symbol": "UNI/USDT",
-      "score": 14.32,
+      "symbol": "BTC/USDT",
+      "score": 13.46,
       "trend": 0.0,
-      "momentum": 8.57,
-      "liquidity": 29.05,
+      "momentum": 10.24,
+      "liquidity": 14.91,
       "wall_signal": false,
-      "price": 3.2756
+      "price": 63006.6
     },
     {
       "symbol": "BTC/USD",
-      "score": 12.81,
+      "score": 13.06,
       "trend": 0.0,
-      "momentum": 10.0,
-      "liquidity": 16.5,
+      "momentum": 10.28,
+      "liquidity": 15.89,
       "wall_signal": false,
-      "price": 63005.99
+      "price": 62944.43
     }
   ]
 }
