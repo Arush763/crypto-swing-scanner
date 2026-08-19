@@ -1,99 +1,117 @@
 {
-  "scan_time": "2026-08-19T16:31:24.511547+00:00",
-  "assets_scanned": 10,
+  "scan_time": "2026-08-19T20:27:15.676213+00:00",
+  "assets_scanned": 12,
   "signals_count": 0,
-  "duration_s": 22.15,
+  "duration_s": 20.4,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "BTC/USDT",
-      "score": 58.04,
-      "trend": 100.0,
-      "momentum": 48.61,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 68827.4
-    },
-    {
-      "symbol": "BTC/USD",
-      "score": 57.9,
-      "trend": 100.0,
-      "momentum": 48.68,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 68772.75
-    },
-    {
       "symbol": "ETH/USD",
-      "score": 57.71,
+      "score": 74.26,
       "trend": 100.0,
-      "momentum": 56.88,
+      "momentum": 60.06,
       "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 2099.64
-    },
-    {
-      "symbol": "SOL/USDT",
-      "score": 55.95,
-      "trend": 100.0,
-      "momentum": 48.81,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 81.99
-    },
-    {
-      "symbol": "ETH/USDT",
-      "score": 55.94,
-      "trend": 100.0,
-      "momentum": 56.7,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 2100.39
-    },
-    {
-      "symbol": "SOL/USD",
-      "score": 55.55,
-      "trend": 100.0,
-      "momentum": 48.67,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 81.87
+      "wall_signal": true,
+      "price": 2121.29
     },
     {
       "symbol": "XRP/USD",
-      "score": 50.75,
-      "trend": 82.7,
-      "momentum": 44.49,
-      "liquidity": 16.5,
+      "score": 68.48,
+      "trend": 83.07,
+      "momentum": 47.22,
+      "liquidity": 17.06,
+      "wall_signal": true,
+      "price": 1.0773
+    },
+    {
+      "symbol": "SOL/USD",
+      "score": 66.71,
+      "trend": 100.0,
+      "momentum": 49.5,
+      "liquidity": 11.25,
+      "wall_signal": true,
+      "price": 82.37
+    },
+    {
+      "symbol": "LINK/USDT",
+      "score": 60.52,
+      "trend": 100.0,
+      "momentum": 55.58,
+      "liquidity": 28.0,
       "wall_signal": false,
-      "price": 1.067
+      "price": 10.2596
+    },
+    {
+      "symbol": "LINK/USD",
+      "score": 59.2,
+      "trend": 100.0,
+      "momentum": 55.74,
+      "liquidity": 15.44,
+      "wall_signal": false,
+      "price": 10.256
+    },
+    {
+      "symbol": "ETH/USDT",
+      "score": 58.08,
+      "trend": 100.0,
+      "momentum": 59.92,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 2122.16
+    },
+    {
+      "symbol": "BTC/USD",
+      "score": 57.52,
+      "trend": 100.0,
+      "momentum": 47.62,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 68718.01
+    },
+    {
+      "symbol": "SOL/USDT",
+      "score": 56.68,
+      "trend": 100.0,
+      "momentum": 49.36,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 82.41
+    },
+    {
+      "symbol": "BTC/USDT",
+      "score": 56.18,
+      "trend": 100.0,
+      "momentum": 47.41,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 68738.3
     },
     {
       "symbol": "XRP/USDT",
-      "score": 49.49,
-      "trend": 82.67,
-      "momentum": 44.33,
+      "score": 50.69,
+      "trend": 83.04,
+      "momentum": 47.02,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 1.06739
+      "price": 1.07758
     },
     {
       "symbol": "DOGE/USDT",
-      "score": 49.33,
-      "trend": 81.96,
-      "momentum": 34.54,
-      "liquidity": 26.61,
+      "score": 47.63,
+      "trend": 81.88,
+      "momentum": 32.75,
+      "liquidity": 26.99,
       "wall_signal": false,
       "price": 0.07311
     },
     {
       "symbol": "UNI/USDT",
-      "score": 41.86,
-      "trend": 36.92,
-      "momentum": 53.81,
-      "liquidity": 30.28,
+      "score": 40.91,
+      "trend": 36.77,
+      "momentum": 52.15,
+      "liquidity": 29.81,
       "wall_signal": false,
-      "price": 3.5677
+      "price": 3.5612
     }
   ]
 }
