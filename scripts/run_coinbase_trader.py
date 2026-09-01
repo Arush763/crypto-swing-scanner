@@ -450,6 +450,53 @@ class CoinbaseCrowdShortLoop:
             )
         return budget
 
+    def _alert(
+        self,
+        sig,
+        venue_symbol: str,
+        blocked: str = "",
+        contracts: Optional[float] = None,
+        notional: Optional[float] = None,
+        verdict=None,
+    ) -> None:
+        """
+        Send one Telegram message describing the trade the signal implies.
+
+        Blocked signals are reported too, with the reason. Crowd extremes are
+        rare by construction — this only fires on the top decile — so the
+        volume is low enough that silence would be more confusing than a
+        "here's why not" line. A reader who is told a symbol is crowded but not
+        told it was refused will assume the bot simply missed it.
+        """
+        if not self.notifier.enabled:
+            return
+
+        head = "⛔ <b>CROWD SHORT (blocked)</b>" if blocked else "🔻 <b>CROWD SHORT</b>"
+        lines = [
+            f"{head} — {venue_symbol}",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"Long/short ratio: <code>{sig.ratio:.2f}</code>  "
+            f"(p{sig.percentile*100:.0f} of {sig.observations} obs)",
+            f"Hold: <code>{sig.hold_hours}h</code>   Mode: <code>{self.mode()}</code>",
+        ]
+
+        if contracts:
+            lines.append(
+                f"Size: <code>{int(contracts)}</code> contract(s) = "
+                f"<code>${notional:,.0f}</code> notional"
+            )
+        if verdict is not None:
+            lines.append(
+                f"Cost: <code>{verdict.round_trip_cost_pct:.3f}%</code> round trip → "
+                f"net <code>{verdict.net_edge_pct:+.3f}%</code>"
+            )
+            if self.is_contract_venue and not fee_is_measured(self.spec.name):
+                lines.append("⚠️ fee is a placeholder, not your real rate")
+        if blocked:
+            lines.append(f"<i>{blocked}</i>")
+
+        self.notifier.send("\n".join(lines))
+
     def _consider(self, sig) -> None:
         """Translate one crowd signal into a Coinbase order, or explain why not."""
         base = sig.symbol.split("/")[0]
@@ -463,28 +510,20 @@ class CoinbaseCrowdShortLoop:
         logger.info("SIGNAL: SHORT %s -> %s  ratio=%.2f p%.0f  hold %dh",
                     sig.symbol, venue_symbol, sig.ratio, sig.percentile * 100,
                     sig.hold_hours)
-        if self.notifier.enabled:
-            self.notifier.send(
-                f"🔻 <b>CROWD SHORT</b> — {venue_symbol}\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"Long/short ratio: <code>{sig.ratio:.2f}</code>  "
-                f"(p{sig.percentile*100:.0f} of {sig.observations} obs)\n"
-                f"Hold: <code>{sig.hold_hours}h</code>   "
-                f"Venue: <code>{self.spec.name}</code>   Mode: <code>{self.mode()}</code>"
-            )
-
-        if self.args.dry_run or self.executor is None:
-            return
 
         market = self.marks.client.markets[venue_symbol]
 
-        # A closed session rejects orders outright, so check before doing any
-        # sizing work that would be thrown away.
+        # Everything from here to the order itself is pure computation, so it
+        # runs in dry-run too. An alert that says only "short BTC" leaves the
+        # reader to redo the contract lookup, the sizing and the cost check by
+        # hand — which is the work that decides whether the trade is worth
+        # taking at all.
         if self.is_contract_venue:
             session = session_from_market(market)
             allowed, why = session_allows_entry(session, sig.hold_hours)
             if not allowed:
                 logger.info("Entry deferred for %s — %s", venue_symbol, why)
+                self._alert(sig, venue_symbol, blocked=why)
                 return
             delayed, note = exit_falls_in_break(session, sig.hold_hours)
             if delayed:
@@ -493,9 +532,11 @@ class CoinbaseCrowdShortLoop:
         mark = self.marks.fetch([venue_symbol]).get(venue_symbol)
         if mark is None:
             logger.warning("No mark for %s — skipping entry", venue_symbol)
+            self._alert(sig, venue_symbol, blocked="no price available")
             return
 
-        equity = self.executor.account_equity_usd(self.args.paper_equity)
+        equity = (self.executor.account_equity_usd(self.args.paper_equity)
+                  if self.executor else self.args.paper_equity)
         budget = self._budget_for(equity)
 
         quantity = notional = None
@@ -506,6 +547,7 @@ class CoinbaseCrowdShortLoop:
             sizing = size_in_contracts(spec, mark.last, budget, self.spec.name)
             if not sizing.tradeable:
                 logger.info("Entry refused for %s — %s", venue_symbol, sizing.reason)
+                self._alert(sig, venue_symbol, blocked=sizing.reason)
                 return
             quantity, notional = float(sizing.contracts), sizing.notional_usd
             fee_pct = sizing.fee_pct_round_trip
@@ -527,8 +569,16 @@ class CoinbaseCrowdShortLoop:
         )
         if not verdict.allowed:
             logger.info("Entry refused for %s — %s", venue_symbol, verdict.reason)
+            self._alert(sig, venue_symbol, blocked=verdict.reason,
+                        contracts=quantity, notional=notional, verdict=verdict)
             return
         logger.info("Cost check %s: %s", venue_symbol, verdict.explain())
+
+        self._alert(sig, venue_symbol, contracts=quantity,
+                    notional=notional, verdict=verdict)
+
+        if self.args.dry_run or self.executor is None:
+            return
 
         order = ShortOrder(
             symbol=venue_symbol,

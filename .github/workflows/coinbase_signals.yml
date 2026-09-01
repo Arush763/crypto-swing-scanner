@@ -1,0 +1,66 @@
+name: Coinbase Crowd-Short Signals
+
+# Hourly, alert-only. Runs the crowd-short signal and translates each hit into
+# the actual Coinbase Derivatives contract it would trade, so the Telegram
+# message carries the contract id, the whole-contract size that fits the risk
+# cap, and the cost check — not just "short BTC".
+#
+# WHY --dry-run IS THE ONLY CORRECT MODE HERE
+# ------------------------------------------
+# The strategy holds for 16 hours and tracks open positions in a file. A GitHub
+# runner is destroyed when the job ends, so a position opened in one run would
+# have no process watching it and no state on the next — the bot would forget it
+# has money at risk and happily re-enter. CI can therefore alert, but it cannot
+# trade. Actual execution needs a host that stays up:
+#
+#     python scripts/run_coinbase_trader.py            # paper
+#     python scripts/run_coinbase_trader.py --live     # real orders
+#
+# See docs/COINBASE.md.
+#
+# DATA SOURCE LIMITATION (unchanged from crowd_short.yml)
+# ------------------------------------------------------
+# The signal is validated on Binance positioning. Binance returns 451 to US IPs
+# and GitHub's runners are US-based, so this reads OKX. OKX's ratio only tracks
+# Binance's closely for BTC/ETH/SOL, and the runner refuses the rest by default.
+
+on:
+  schedule:
+    - cron: "10 * * * *"     # hourly, just after the bar closes and after crowd_short
+  workflow_dispatch:
+    inputs:
+      allow_unvalidated:
+        description: "Also alert on symbols whose OKX ratio was not validated"
+        type: boolean
+        default: false
+
+jobs:
+  signals:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Cheap and worth failing loudly on: if Coinbase is unreachable or the
+      # venue stops being able to short, every alert below would be describing
+      # a trade that cannot be placed.
+      - name: Preflight the venue
+        run: python scripts/coinbase_preflight.py --public-only
+
+      - name: Emit Coinbase-resolved signals
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/run_coinbase_trader.py --once --dry-run \
+            ${{ inputs.allow_unvalidated && '--allow-unvalidated' || '' }}
