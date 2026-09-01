@@ -218,6 +218,7 @@ class RiskManager:
         equity_usd: float,
         entry_price: float,
         stop_price: float,
+        side: str = "long",
     ) -> Tuple[float, float]:
         """
         Risk-based sizing: stake the amount that loses exactly
@@ -229,12 +230,24 @@ class RiskManager:
         a tight stop earns a larger position and a wide one a smaller,
         which is what makes risk-per-trade constant across setups whose
         volatility differs by an order of magnitude.
+
+        A short's stop sits *above* its entry, so the distance is taken as an
+        absolute value and the side is checked separately. A stop on the wrong
+        side of the entry is rejected rather than silently absolute-valued into
+        a plausible-looking size: it means the caller has the direction
+        confused, and sizing that position at all is the wrong response.
         """
-        if entry_price <= 0 or stop_price <= 0 or stop_price >= entry_price:
+        if entry_price <= 0 or stop_price <= 0:
+            return 0.0, 0.0
+
+        side = side.lower()
+        if side == "long" and stop_price >= entry_price:
+            return 0.0, 0.0
+        if side == "short" and stop_price <= entry_price:
             return 0.0, 0.0
 
         risk_usd = equity_usd * self.limits.risk_per_trade_pct
-        risk_per_unit = entry_price - stop_price
+        risk_per_unit = abs(entry_price - stop_price)
         if risk_per_unit <= 0:
             return 0.0, 0.0
 
@@ -246,3 +259,32 @@ class RiskManager:
             quantity = notional / entry_price
 
         return quantity, notional
+
+    def notional_size(
+        self,
+        equity_usd: float,
+        entry_price: float,
+        fraction_of_equity: float = 0.0,
+    ) -> Tuple[float, float]:
+        """
+        Fixed-notional sizing for a strategy that has no stop.
+
+        The crowd-short signal deliberately carries neither stop nor target —
+        it is a statement about return over a fixed horizon, and the parameter
+        search that would have added exit levels was exhausted and found
+        nothing. Stop-distance sizing is undefined for such a position, so size
+        is capped by notional instead.
+
+        Because there is no stop, `max_position_usd` is not merely a ceiling
+        here — it IS the risk limit, and the worst case is bounded only by how
+        far price can run inside the hold window. On a perp, add exchange-side
+        liquidation distance to that reasoning before raising it.
+        """
+        if entry_price <= 0:
+            return 0.0, 0.0
+
+        fraction = fraction_of_equity or self.limits.risk_per_trade_pct
+        notional = min(equity_usd * fraction, self.limits.max_position_usd)
+        if notional <= 0:
+            return 0.0, 0.0
+        return notional / entry_price, notional

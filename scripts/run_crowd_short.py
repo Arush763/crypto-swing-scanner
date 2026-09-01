@@ -155,9 +155,10 @@ def main() -> None:
                         )
                     if args.paper or args.live:
                         logger.warning(
-                            "Order routing for perp shorts is not wired up — signal logged "
-                            "only. The existing executor is spot-long-only; see notes in "
-                            "src/execution/executor.py.",
+                            "This runner alerts only. Perp short routing now exists — "
+                            "use scripts/run_coinbase_trader.py, which takes the same "
+                            "signals through the executor with a 16h timed exit. See "
+                            "docs/COINBASE.md.",
                         )
 
         except Exception as exc:

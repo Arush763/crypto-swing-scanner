@@ -8,3 +8,8 @@ __pycache__/
 dist/
 .pytest_cache/
 data/metrics_cache/
+
+# Live account state — open positions and risk breakers. Never commit these:
+# pushing an open-position file to a public repo publishes what you are holding.
+data/state/positions*.json
+data/state/risk*.json

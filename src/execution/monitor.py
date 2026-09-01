@@ -37,18 +37,43 @@ class Mark:
     high: Optional[float] = None     # interval high; defaults to `last`
 
     @property
-    def worst(self) -> float:
+    def _low(self) -> float:
         return self.low if self.low is not None else self.last
 
     @property
-    def best(self) -> float:
+    def _high(self) -> float:
         return self.high if self.high is not None else self.last
+
+    def adverse(self, direction: int) -> float:
+        """
+        The extreme of the interval that hurts a position in `direction`.
+
+        A long is hurt by the low; a short is hurt by the high. Naming these
+        by what they do to the trade rather than by which end of the bar they
+        are is what keeps the stop check correct when a short is added — the
+        original `worst`/`best` pair silently meant "low"/"high", which is only
+        the same thing for a long.
+        """
+        return self._low if direction > 0 else self._high
+
+    def favourable(self, direction: int) -> float:
+        """The extreme of the interval that helps a position in `direction`."""
+        return self._high if direction > 0 else self._low
+
+    # Retained for callers that predate the short side; both assume a long.
+    @property
+    def worst(self) -> float:
+        return self._low
+
+    @property
+    def best(self) -> float:
+        return self._high
 
 
 @dataclass
 class LifecycleEvent:
     position: Position
-    kind: str             # "tp1" | "tp2" | "stop" | "trail"
+    kind: str             # "tp1" | "tp2" | "stop" | "trail" | "expiry"
     price: float
     pnl_pct: float
     pnl_usd: float
@@ -84,10 +109,13 @@ class PositionMonitor:
         Fee charged on an exit leg. Exits are taker orders — a stop that waits
         politely in the queue is not a stop — so this uses the taker rate
         regardless of how the entry was placed.
+
+        Delegated to the position so contract size and flat per-contract
+        commissions are applied in one place rather than re-derived here.
         """
         model = cost_model_for(position.symbol, venue=self.venue, exit_is_maker=False)
         fee_pct = model.leg_cost_pct(is_maker=False)
-        return abs(price * quantity) * fee_pct / 100.0
+        return position.leg_fee_usd(price, quantity, fee_pct)
 
     def _fill(self, position: Position, price: float, reason: str) -> float:
         """Route an exit through the executor, returning the achieved price."""
@@ -114,6 +142,20 @@ class PositionMonitor:
         for position in self.store.all_open():
             mark = marks.get(position.symbol)
             if mark is None:
+                # An expired position is the one case where "no information"
+                # does not justify waiting: the horizon the strategy was
+                # measured over has passed, and leaving it open converts a
+                # tested trade into an untested one. Flatten it, and say
+                # plainly that the fill price is a fallback.
+                if position.is_expired():
+                    logger.warning(
+                        "%s is past its hold horizon but has no fresh mark — "
+                        "closing at the entry price as a fallback",
+                        position.symbol,
+                    )
+                    events.append(
+                        self._close_out(position, position.entry_price, "expiry", "expiry")
+                    )
                 continue
             event = self._check_one(position, mark)
             if event:
@@ -121,11 +163,51 @@ class PositionMonitor:
 
         return events
 
+    @staticmethod
+    def _stop_breached(position: Position, mark: Mark) -> bool:
+        """
+        Whether the interval reached the stop, in the direction that hurts.
+
+        A stop of zero means "no stop" — the crowd-short signal is a fixed-hold
+        statement with neither stop nor target, and treating an unset level as
+        a price would close a short instantly, since every price is above zero.
+        """
+        if position.stop_loss <= 0:
+            return False
+        adverse = mark.adverse(position.direction)
+        return adverse <= position.stop_loss if position.direction > 0 else adverse >= position.stop_loss
+
+    @staticmethod
+    def _target_reached(position: Position, mark: Mark, target: float) -> bool:
+        if target <= 0:
+            return False
+        favourable = mark.favourable(position.direction)
+        return favourable >= target if position.direction > 0 else favourable <= target
+
+    def _close_out(
+        self, position: Position, price: float, reason: str, kind: str,
+    ) -> LifecycleEvent:
+        """Flatten a position and emit its terminal event."""
+        fill = self._fill(position, price, reason)
+        fee = self._exit_fee_usd(position, fill, position.remaining_quantity)
+        position.close(fill, reason, fee)
+        pnl_pct = position.total_pnl_pct()
+
+        self.store.retire(position)
+        log_closed_trade(position)
+        if self.notifier:
+            self.notifier.send_position_closed(
+                position, reason, fill, pnl_pct, position.realised_pnl_usd,
+            )
+        logger.info("%s %s %s @ %.8g (%.2f%%)",
+                    reason.upper(), position.side, position.symbol, fill, pnl_pct)
+        return LifecycleEvent(position, kind, fill, pnl_pct, position.realised_pnl_usd, True)
+
     def _check_one(self, position: Position, mark: Mark) -> List[LifecycleEvent]:
         events: List[LifecycleEvent] = []
 
         # --- Stop first, deliberately. See module docstring. ---
-        if mark.worst <= position.stop_loss:
+        if self._stop_breached(position, mark):
             price = self._fill(position, position.stop_loss, "stop_loss")
             fee = self._exit_fee_usd(position, price, position.remaining_quantity)
             position.close(price, "stop_loss", fee)
@@ -139,8 +221,16 @@ class PositionMonitor:
             logger.info("STOP %s @ %.8g (%.2f%%)", position.symbol, price, pnl_pct)
             return [LifecycleEvent(position, "stop", price, pnl_pct, position.realised_pnl_usd, True)]
 
+        # --- Time-based exit, before the targets. ---
+        # A fixed-hold signal that has run out of horizon should be flattened
+        # even if the same interval also touched a target: the study measured
+        # return at the horizon, and preferring the target here would report a
+        # fill the strategy is not entitled to.
+        if position.is_expired():
+            return [self._close_out(position, mark.last, "expiry", "expiry")]
+
         # --- TP1: scale out, move stop to breakeven ---
-        if not position.tp1_hit and mark.best >= position.take_profit_1:
+        if not position.tp1_hit and self._target_reached(position, mark, position.take_profit_1):
             qty = position.quantity * position.tp1_scale_out_fraction
             price = self._fill(position, position.take_profit_1, "tp1")
             fee = self._exit_fee_usd(position, price, qty)
@@ -166,7 +256,7 @@ class PositionMonitor:
             # waiting a cycle and reporting a fill that never existed.
 
         # --- TP2: close the remainder ---
-        if position.is_open and mark.best >= position.take_profit_2:
+        if position.is_open and self._target_reached(position, mark, position.take_profit_2):
             price = self._fill(position, position.take_profit_2, "tp2")
             fee = self._exit_fee_usd(position, price, position.remaining_quantity)
             position.close(price, "take_profit_2", fee)

@@ -349,7 +349,25 @@ FLOW_GATE_MAX_PERCENTILE: float = 0.50
 # default because it's geo-accessible from where this scanner runs (unlike
 # binance/bybit — see EXCHANGES above), has deep major-pair books, and
 # offers a demo-trading mode for validating the executor without capital.
+#
+# Must be a key in src/execution/venues.VENUES — that registry, not this
+# string, is what knows whether the venue is spot or perp and whether it can
+# hold a short. Setting a venue here that cannot express a strategy's direction
+# does not degrade gracefully; it refuses, by design.
 EXECUTION_VENUE: str = "okx"
+
+# Coinbase target for scripts/run_coinbase_trader.py.
+#
+# Defaults to the CFTC-regulated Coinbase Derivatives Exchange (CDE) futures,
+# reached through the same ccxt client as Advanced Trade. This is the only
+# Coinbase product that is BOTH shortable AND open to US persons — the strategy
+# is short-only, Coinbase's spot venues have no borrow (and cost ~1.8-2.4% per
+# round trip against a +0.655% edge), and Coinbase International's perps are
+# closed to US persons.
+#
+# The contracts are nano-sized and dated; the furthest series (Dec 2030) is the
+# "perp" product and is what src/execution/venues.resolve_contract picks.
+COINBASE_VENUE: str = "coinbasederivatives"
 
 # Post-only (maker) entries. This is the single largest cost lever available:
 # it drops the entry leg from taker fee + half-spread to just the maker fee.
@@ -367,7 +385,14 @@ ENTRY_LIMIT_TIMEOUT_SECONDS: int = 90
 # position that would violate any of them, and the daily-loss breaker halts
 # all new entries until the next UTC day once tripped.
 MAX_CONCURRENT_POSITIONS: int = 3
-MAX_POSITION_USD: float = 500.0             # Per-position notional ceiling
+# Per-position notional ceiling. Raised from $500 to $800 for the Coinbase CDE
+# venue: contracts are indivisible, and one nano BTC contract is ~$770, so a
+# $500 cap made BTC, XRP, BNB, LINK and SOL literally unsizeable — the runner
+# would refuse the five largest-notional (and therefore cheapest per fee)
+# contracts and trade only DOGE. This is a real increase in per-position risk on
+# a strategy that carries no stop; lower it and you lose symbols, in order of
+# contract size. See src/execution/contracts.size_in_contracts.
+MAX_POSITION_USD: float = 800.0
 MAX_DAILY_LOSS_USD: float = 100.0           # Halt trading for the day at this realised loss
 MAX_DAILY_TRADES: int = 60                  # Runaway-loop guard
 RISK_PER_TRADE_PCT: float = 0.01            # Fraction of equity risked per trade

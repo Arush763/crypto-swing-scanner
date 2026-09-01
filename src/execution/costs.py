@@ -81,9 +81,54 @@ FEE_SCHEDULES: Dict[str, FeeSchedule] = {
     "coinbase": FeeSchedule("coinbase", maker_bps=40.0, taker_bps=60.0),
     "kraken":   FeeSchedule("kraken",   maker_bps=25.0, taker_bps=40.0),
     "gateio":   FeeSchedule("gateio",   maker_bps=20.0, taker_bps=20.0),
+
+    # ---- Coinbase, per product ------------------------------------------
+    # These are ENTRY-TIER placeholders, and they are the most consequential
+    # numbers in this file, because Coinbase's retail spot tier is roughly an
+    # order of magnitude above OKX's: at these rates a taker round trip costs
+    # more than the entire measured gross edge of the one validated strategy
+    # (+0.655%/trade). Charging the wrong number here would hide that.
+    #
+    # Coinbase publishes volume-tiered schedules that change, so treat these
+    # as a conservative default and REPLACE them with your account's real
+    # figures — `scripts/coinbase_preflight.py` fetches them from the API and
+    # prints the override to use. `resolve_fee_schedule` prefers a fetched
+    # schedule over anything written here.
+    "coinbaseadvanced":      FeeSchedule("coinbaseadvanced",      maker_bps=60.0,  taker_bps=120.0),
+    "coinbaseexchange":      FeeSchedule("coinbaseexchange",      maker_bps=40.0,  taker_bps=60.0),
+    # Perp fees are far lower than retail spot, which is the second reason
+    # (after shorting) that the perp venue is the only one where the strategy
+    # is viable at all.
+    "coinbaseinternational": FeeSchedule("coinbaseinternational", maker_bps=2.0,   taker_bps=6.0),
 }
 
+# Schedules discovered at runtime from an authenticated API call. Populated by
+# `register_fee_schedule`; consulted first by `resolve_fee_schedule`. A measured
+# fee always beats a documented one — tiers move, and the account's own rate is
+# the only rate that will actually be charged.
+_MEASURED_SCHEDULES: Dict[str, FeeSchedule] = {}
+
 DEFAULT_VENUE = "okx"
+
+
+def register_fee_schedule(venue: str, maker_bps: float, taker_bps: float) -> FeeSchedule:
+    """
+    Record the account's real fee tier, as read from the exchange.
+
+    Called by preflight and by the executor on startup so that every later
+    cost calculation — sizing, the edge guard, paper fills — uses the rate the
+    account is actually charged rather than the conservative table above.
+    """
+    schedule = FeeSchedule(venue, maker_bps=float(maker_bps), taker_bps=float(taker_bps))
+    _MEASURED_SCHEDULES[venue] = schedule
+    return schedule
+
+
+def resolve_fee_schedule(venue: str) -> FeeSchedule:
+    """Measured schedule if one has been registered, else the static table."""
+    if venue in _MEASURED_SCHEDULES:
+        return _MEASURED_SCHEDULES[venue]
+    return FEE_SCHEDULES.get(venue, FEE_SCHEDULES[DEFAULT_VENUE])
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +229,7 @@ class CostModel:
     def _fee_pct(self, is_maker: bool) -> float:
         if self.fee_override_bps is not None:
             return self.fee_override_bps / BPS_PER_PCT
-        schedule = FEE_SCHEDULES.get(self.venue, FEE_SCHEDULES[DEFAULT_VENUE])
+        schedule = resolve_fee_schedule(self.venue)
         return schedule.maker_pct if is_maker else schedule.taker_pct
 
     def _half_spread_pct(self, override: Optional[float]) -> float:

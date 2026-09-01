@@ -23,7 +23,7 @@ import json
 import logging
 import threading
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -39,7 +39,7 @@ class Position:
     """One open (or recently closed) trade."""
 
     symbol: str
-    side: str                       # "long" — shorts are not supported yet
+    side: str                       # "long" | "short"
     entry_price: float
     quantity: float
     stop_loss: float
@@ -48,6 +48,28 @@ class Position:
 
     opened_at: str = ""             # ISO8601 UTC
     closed_at: str = ""
+
+    # Deadline for a time-based exit, ISO8601 UTC. The crowd-short signal is a
+    # statement about forward return over a fixed 16-hour horizon, with no stop
+    # and no target — holding past the horizon is not "letting a winner run",
+    # it is trading a position the study never measured. Empty means the
+    # position exits on price alone, as the wall signals do.
+    expires_at: str = ""
+
+    # Base units represented by ONE unit of `quantity`. 1.0 for spot and for
+    # perps quoted in base terms; 0.01 for a nano BTC futures contract, where
+    # `quantity` counts contracts rather than coins.
+    #
+    # This is load-bearing. Without it a position of 1 nano BTC contract books
+    # its notional as one whole BTC — a hundredfold overstatement of exposure,
+    # P&L and fees, in a direction that makes a losing strategy look like a
+    # spectacular one. Every economic quantity below multiplies by it.
+    contract_size: float = 1.0
+
+    # Flat commission per contract per side, for venues that charge that way
+    # instead of a percentage of notional. Zero means the percentage cost model
+    # applies. See src/execution/contracts.py.
+    fee_per_contract_usd: float = 0.0
 
     signal_type: str = ""
     is_paper: bool = True
@@ -80,25 +102,85 @@ class Position:
     # -- derived ------------------------------------------------------
 
     @property
+    def direction(self) -> int:
+        """
+        +1 for a long, -1 for a short.
+
+        Every P&L expression below multiplies by this rather than branching, so
+        there is no path where one of them gets the sign right and another
+        doesn't — the class of bug that makes a losing short look like a
+        winning one in the log while the account disagrees.
+        """
+        return -1 if self.side == "short" else 1
+
+    @property
+    def is_short(self) -> bool:
+        return self.side == "short"
+
+    @property
+    def base_quantity(self) -> float:
+        """Position size in base units, whatever `quantity` counts."""
+        return self.quantity * self.contract_size
+
+    @property
+    def remaining_base_quantity(self) -> float:
+        return self.remaining_quantity * self.contract_size
+
+    @property
     def notional_usd(self) -> float:
-        return self.entry_price * self.quantity
+        return self.entry_price * self.base_quantity
 
     @property
     def remaining_notional_usd(self) -> float:
-        return self.entry_price * self.remaining_quantity
+        return self.entry_price * self.remaining_base_quantity
 
     @property
     def is_open(self) -> bool:
         return self.status == "open"
 
     def unrealised_pnl_pct(self, mark_price: float) -> float:
-        """Gross percentage move on the still-open portion."""
+        """Gross percentage move on the still-open portion, in the trade's favour."""
         if self.entry_price <= 0:
             return 0.0
-        return (mark_price - self.entry_price) / self.entry_price * 100
+        return (mark_price - self.entry_price) / self.entry_price * 100 * self.direction
 
     def unrealised_pnl_usd(self, mark_price: float) -> float:
-        return (mark_price - self.entry_price) * self.remaining_quantity
+        return ((mark_price - self.entry_price)
+                * self.remaining_base_quantity * self.direction)
+
+    def leg_fee_usd(self, price: float, quantity: float, fee_pct: float) -> float:
+        """
+        Commission for one leg of `quantity` units at `price`.
+
+        A per-contract venue charges a flat amount that does not scale with
+        price, so applying a percentage there would drift as the underlying
+        moves. Preferring the flat charge when one is set keeps the two fee
+        conventions from being silently mixed.
+        """
+        if self.fee_per_contract_usd > 0:
+            return abs(quantity) * self.fee_per_contract_usd
+        return abs(price * quantity * self.contract_size) * fee_pct / 100.0
+
+    # -- time-based exit ----------------------------------------------
+
+    def set_hold_hours(self, hours: float) -> None:
+        """Stamp a deadline `hours` from the open time."""
+        try:
+            opened = datetime.fromisoformat(self.opened_at)
+        except (ValueError, TypeError):
+            opened = datetime.now(timezone.utc)
+        self.expires_at = (opened + timedelta(hours=hours)).isoformat()
+
+    def is_expired(self, now: Optional[datetime] = None) -> bool:
+        """Whether a time-based exit is due. False when no deadline is set."""
+        if not self.expires_at:
+            return False
+        try:
+            deadline = datetime.fromisoformat(self.expires_at)
+        except (ValueError, TypeError):
+            logger.warning("Unparseable expires_at on %s: %r", self.symbol, self.expires_at)
+            return False
+        return (now or datetime.now(timezone.utc)) >= deadline
 
     def holding_description(self) -> str:
         try:
@@ -128,7 +210,7 @@ class Position:
         position's realised P&L is correct at every intermediate point, not
         only once it is fully flat.
         """
-        gross = (price - self.entry_price) * quantity
+        gross = (price - self.entry_price) * quantity * self.contract_size * self.direction
         net = gross - fee_usd
         self.realised_pnl_usd += net
         self.fees_paid_usd += fee_usd
