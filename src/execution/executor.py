@@ -53,6 +53,7 @@ from src.execution.venues import (
     DirectionUnsupported,
     ccxt_options,
     check_direction,
+    exchange_class,
     load_credentials,
     venue_spec,
 )
@@ -141,8 +142,7 @@ class Executor:
             return False
 
         try:
-            import ccxt
-            klass = getattr(ccxt, self.spec.ccxt_id)
+            klass = exchange_class(self.spec)
             self.client = klass(ccxt_options(self.spec, creds))
 
             # Demo/sandbox mode when requested — the intended way to exercise

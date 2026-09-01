@@ -97,7 +97,12 @@ from src.execution.executor import Executor
 from src.execution.monitor import Mark, PositionMonitor
 from src.execution.position import PositionStore
 from src.execution.risk import RiskLimits, RiskManager
-from src.execution.venues import VENUES, resolve_contract, venue_spec
+from src.execution.venues import (
+    VENUES,
+    exchange_class,
+    resolve_contract,
+    venue_spec,
+)
 from src.modules.crowd_signal import HOLD_HOURS, CrowdShortSignal
 from src.notifications.telegram import TelegramNotifier
 
@@ -142,10 +147,9 @@ class MarkFeed:
     """
 
     def __init__(self, venue: str) -> None:
-        import ccxt
         spec = venue_spec(venue)
         self.spec = spec
-        self.client = getattr(ccxt, spec.ccxt_id)({"enableRateLimit": True})
+        self.client = exchange_class(spec)({"enableRateLimit": True})
         self.client.load_markets()
 
     def available(self, symbols: List[str]) -> List[str]:

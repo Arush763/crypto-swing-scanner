@@ -57,8 +57,8 @@ class VenueSpec:
     """Everything the executor needs to know about one venue."""
 
     name: str                       # key used in config and FEE_SCHEDULES
-    ccxt_id: str                    # exchange class in ccxt
-    product: str                    # "spot" | "perp"
+    ccxt_id: str                    # preferred exchange class in ccxt
+    product: str                    # "spot" | "perp" | "future"
     can_short: bool
     quote: str                      # settlement/quote currency for symbols
     description: str
@@ -69,6 +69,17 @@ class VenueSpec:
     key_vars: Tuple[str, ...] = ("EXCHANGE_API_KEY",)
     secret_vars: Tuple[str, ...] = ("EXCHANGE_API_SECRET",)
     passphrase_vars: Tuple[str, ...] = ("EXCHANGE_API_PASSWORD",)
+
+    # Alternative ccxt ids to try if `ccxt_id` is absent, in order.
+    #
+    # ccxt renames and merges exchange classes between releases: 4.5.56 has
+    # `coinbaseadvanced`, 4.5.77 does not, and `requirements.txt` pins only
+    # `ccxt>=4.3.0` — so a CI runner installing the latest release gets a
+    # different set of ids than a developer machine that resolved months ago.
+    # That failure is invisible locally and fatal in CI, which is the worst
+    # combination, so the id is resolved against what is actually installed
+    # rather than asserted.
+    ccxt_id_fallbacks: Tuple[str, ...] = ()
 
     # Whether ccxt's set_sandbox_mode does something real here. Coinbase
     # Advanced has no public sandbox, which matters: for that venue the only
@@ -110,6 +121,7 @@ VENUES: Dict[str, VenueSpec] = {
     "coinbaseadvanced": VenueSpec(
         name="coinbaseadvanced",
         ccxt_id="coinbaseadvanced",
+        ccxt_id_fallbacks=("coinbase",),
         product="spot",
         can_short=False,
         quote="USD",
@@ -128,6 +140,7 @@ VENUES: Dict[str, VenueSpec] = {
     "coinbasederivatives": VenueSpec(
         name="coinbasederivatives",
         ccxt_id="coinbaseadvanced",          # same client, different markets
+        ccxt_id_fallbacks=("coinbase",),
         product="future",
         can_short=True,
         quote="USD",
@@ -218,6 +231,41 @@ def venue_spec(name: str) -> VenueSpec:
 
 def is_coinbase(name: str) -> bool:
     return name.startswith("coinbase")
+
+
+class ExchangeUnavailable(Exception):
+    """Raised when no ccxt class for a venue exists in the installed version."""
+
+
+def resolve_ccxt_id(spec: VenueSpec) -> str:
+    """
+    The ccxt exchange id for `spec` that actually exists in this installation.
+
+    Tries the preferred id, then each fallback. Raising with the full list beats
+    an AttributeError from `getattr(ccxt, ...)`, which names one id and leaves
+    the reader to guess that ccxt renamed it between releases.
+    """
+    import ccxt
+
+    for candidate in (spec.ccxt_id, *spec.ccxt_id_fallbacks):
+        if hasattr(ccxt, candidate):
+            if candidate != spec.ccxt_id:
+                logger.info(
+                    "ccxt %s has no %r — using %r for venue %s",
+                    ccxt.__version__, spec.ccxt_id, candidate, spec.name,
+                )
+            return candidate
+
+    tried = ", ".join((spec.ccxt_id, *spec.ccxt_id_fallbacks))
+    raise ExchangeUnavailable(
+        f"ccxt {ccxt.__version__} provides none of: {tried} (venue {spec.name})"
+    )
+
+
+def exchange_class(spec: VenueSpec):
+    """The ccxt exchange class for `spec`."""
+    import ccxt
+    return getattr(ccxt, resolve_ccxt_id(spec))
 
 
 # ---------------------------------------------------------------------------

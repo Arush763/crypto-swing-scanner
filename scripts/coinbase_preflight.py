@@ -49,8 +49,11 @@ from src.execution.contracts import (
 )
 from src.execution.venues import (
     VENUES,
+    ExchangeUnavailable,
     ccxt_options,
+    exchange_class,
     load_credentials,
+    resolve_ccxt_id,
     resolve_contract,
     venue_spec,
 )
@@ -98,10 +101,13 @@ def check_venue(report: Report, venue: str):
         report.line(FAIL, "ccxt is not installed — pip install -r requirements.txt")
         return None
 
-    if not hasattr(ccxt, spec.ccxt_id):
-        report.line(FAIL, f"ccxt {ccxt.__version__} has no exchange {spec.ccxt_id!r}")
+    try:
+        resolved = resolve_ccxt_id(spec)
+    except ExchangeUnavailable as exc:
+        report.line(FAIL, str(exc))
         return None
-    report.line(OK, f"ccxt {ccxt.__version__} provides {spec.ccxt_id}")
+    note = "" if resolved == spec.ccxt_id else f" (fallback from {spec.ccxt_id!r})"
+    report.line(OK, f"ccxt {ccxt.__version__} provides {resolved}{note}")
 
     if not spec.us_available:
         report.line(WARN, f"{venue} is not available to US persons — confirm eligibility "
@@ -132,7 +138,7 @@ def connect(report: Report, spec, public_only: bool):
     creds = load_credentials(spec)
     if public_only:
         report.line(WARN, "--public-only: skipping authentication")
-        client = getattr(ccxt, spec.ccxt_id)({"enableRateLimit": True})
+        client = exchange_class(spec)({"enableRateLimit": True})
     elif not creds.present:
         report.line(
             FAIL,
@@ -145,7 +151,7 @@ def connect(report: Report, spec, public_only: bool):
         report.line(OK, f"credentials present ({kind})")
         if creds.is_cdp_key and "BEGIN" in creds.secret and "\n" not in creds.secret:
             report.line(FAIL, "the PEM secret has no newlines — it will not parse")
-        client = getattr(ccxt, spec.ccxt_id)(ccxt_options(spec, creds))
+        client = exchange_class(spec)(ccxt_options(spec, creds))
 
     try:
         markets = client.load_markets()

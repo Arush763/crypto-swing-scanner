@@ -27,6 +27,8 @@ from src.execution.risk import RiskLimits, RiskManager
 from src.execution.venues import (
     DirectionUnsupported,
     Credentials,
+    ExchangeUnavailable,
+    resolve_ccxt_id,
     ccxt_options,
     check_direction,
     repair_pem,
@@ -53,6 +55,33 @@ def test_coinbase_perps_can_short():
 def test_every_venue_allows_long():
     for name in ("coinbaseadvanced", "coinbaseexchange", "coinbaseinternational", "okx"):
         check_direction(venue_spec(name), "long")
+
+
+def test_coinbase_venues_declare_a_ccxt_fallback():
+    """
+    ccxt renames exchange classes between releases — 4.5.56 has
+    `coinbaseadvanced`, 4.5.77 does not — and requirements.txt pins only
+    `ccxt>=4.3.0`. A CI runner therefore resolves a different set of ids than a
+    developer machine, which is invisible locally and fatal in CI.
+    """
+    for name in ("coinbaseadvanced", "coinbasederivatives"):
+        assert "coinbase" in venue_spec(name).ccxt_id_fallbacks
+
+
+def test_ccxt_id_resolves_to_something_installed():
+    import ccxt
+    for name in ("coinbaseadvanced", "coinbasederivatives", "coinbaseinternational"):
+        assert hasattr(ccxt, resolve_ccxt_id(venue_spec(name)))
+
+
+def test_a_venue_with_no_available_class_raises_a_readable_error():
+    from dataclasses import replace
+    spec = replace(venue_spec("coinbasederivatives"),
+                   ccxt_id="nonesuch", ccxt_id_fallbacks=("alsomissing",))
+    with pytest.raises(ExchangeUnavailable) as exc:
+        resolve_ccxt_id(spec)
+    # Must name every id it tried, not just the first.
+    assert "nonesuch" in str(exc.value) and "alsomissing" in str(exc.value)
 
 
 def test_symbol_mapping_is_product_specific():
