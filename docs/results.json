@@ -1,126 +1,108 @@
 {
-  "scan_time": "2026-10-27T23:32:11.758706+00:00",
-  "assets_scanned": 13,
+  "scan_time": "2026-10-28T04:16:57.682361+00:00",
+  "assets_scanned": 11,
   "signals_count": 0,
-  "duration_s": 24.99,
+  "duration_s": 21.91,
   "signals": [],
   "leaderboard": [
     {
       "symbol": "XRP/USD",
-      "score": 42.04,
-      "trend": 35.62,
-      "momentum": 22.67,
-      "liquidity": 29.55,
+      "score": 46.76,
+      "trend": 35.68,
+      "momentum": 21.8,
+      "liquidity": 28.65,
       "wall_signal": true,
-      "price": 1.326
+      "price": 1.3296
     },
     {
       "symbol": "NEAR/USDT",
-      "score": 40.58,
+      "score": 37.68,
       "trend": 60.0,
-      "momentum": 23.59,
-      "liquidity": 31.4,
+      "momentum": 22.75,
+      "liquidity": 29.27,
       "wall_signal": false,
-      "price": 4.6772
-    },
-    {
-      "symbol": "BTC/USD",
-      "score": 31.52,
-      "trend": 15.0,
-      "momentum": 12.94,
-      "liquidity": 15.81,
-      "wall_signal": true,
-      "price": 80793.74
-    },
-    {
-      "symbol": "XRP/USDT",
-      "score": 27.83,
-      "trend": 35.62,
-      "momentum": 22.53,
-      "liquidity": 11.3,
-      "wall_signal": false,
-      "price": 1.32781
-    },
-    {
-      "symbol": "SOL/USDT",
-      "score": 24.53,
-      "trend": 0.0,
-      "momentum": 11.15,
-      "liquidity": 18.55,
-      "wall_signal": true,
-      "price": 101.29
-    },
-    {
-      "symbol": "UNI/USDT",
-      "score": 24.34,
-      "trend": 15.0,
-      "momentum": 18.83,
-      "liquidity": 25.61,
-      "wall_signal": false,
-      "price": 7.0777
+      "price": 4.6733
     },
     {
       "symbol": "SOL/USD",
-      "score": 24.04,
-      "trend": 0.0,
-      "momentum": 11.19,
-      "liquidity": 21.03,
+      "score": 30.75,
+      "trend": 15.0,
+      "momentum": 14.11,
+      "liquidity": 19.74,
       "wall_signal": true,
-      "price": 101.14
+      "price": 101.75
     },
     {
-      "symbol": "LINK/USDT",
-      "score": 22.95,
+      "symbol": "SOL/USDT",
+      "score": 29.77,
       "trend": 15.0,
-      "momentum": 14.42,
-      "liquidity": 24.76,
-      "wall_signal": false,
-      "price": 11.5548
+      "momentum": 14.11,
+      "liquidity": 17.75,
+      "wall_signal": true,
+      "price": 101.9
     },
     {
-      "symbol": "SUI/USDT",
-      "score": 22.33,
-      "trend": 15.0,
-      "momentum": 16.01,
-      "liquidity": 18.48,
+      "symbol": "UNI/USDT",
+      "score": 29.76,
+      "trend": 35.0,
+      "momentum": 18.29,
+      "liquidity": 24.99,
       "wall_signal": false,
-      "price": 0.93
+      "price": 7.1249
     },
     {
-      "symbol": "BTC/USDT",
-      "score": 21.37,
-      "trend": 15.0,
-      "momentum": 12.85,
-      "liquidity": 21.64,
+      "symbol": "XRP/USDT",
+      "score": 27.41,
+      "trend": 35.69,
+      "momentum": 21.73,
+      "liquidity": 11.49,
       "wall_signal": false,
-      "price": 80904.3
-    },
-    {
-      "symbol": "AVAX/USDT",
-      "score": 20.59,
-      "trend": 15.0,
-      "momentum": 10.83,
-      "liquidity": 19.82,
-      "wall_signal": false,
-      "price": 8.942
-    },
-    {
-      "symbol": "ETH/USD",
-      "score": 19.05,
-      "trend": 15.0,
-      "momentum": 12.95,
-      "liquidity": 20.64,
-      "wall_signal": false,
-      "price": 2346.61
+      "price": 1.33165
     },
     {
       "symbol": "ETH/USDT",
-      "score": 17.93,
+      "score": 22.36,
       "trend": 15.0,
-      "momentum": 12.99,
-      "liquidity": 17.44,
+      "momentum": 15.62,
+      "liquidity": 16.27,
       "wall_signal": false,
-      "price": 2350.22
+      "price": 2356.67
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "score": 22.08,
+      "trend": 15.0,
+      "momentum": 15.41,
+      "liquidity": 19.2,
+      "wall_signal": false,
+      "price": 8.996
+    },
+    {
+      "symbol": "ETH/USD",
+      "score": 20.67,
+      "trend": 15.0,
+      "momentum": 15.52,
+      "liquidity": 19.93,
+      "wall_signal": false,
+      "price": 2352.49
+    },
+    {
+      "symbol": "BTC/USDT",
+      "score": 20.03,
+      "trend": 15.0,
+      "momentum": 15.08,
+      "liquidity": 20.64,
+      "wall_signal": false,
+      "price": 81002.7
+    },
+    {
+      "symbol": "BTC/USD",
+      "score": 19.37,
+      "trend": 15.0,
+      "momentum": 15.02,
+      "liquidity": 15.23,
+      "wall_signal": false,
+      "price": 80871.63
     }
   ]
 }
