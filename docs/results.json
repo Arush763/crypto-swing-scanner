@@ -1,81 +1,72 @@
 {
-  "scan_time": "2026-11-01T14:46:42.159847+00:00",
-  "assets_scanned": 8,
+  "scan_time": "2026-11-01T20:14:21.871247+00:00",
+  "assets_scanned": 7,
   "signals_count": 0,
-  "duration_s": 17.11,
+  "duration_s": 17.34,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "BTC/USD",
-      "score": 21.32,
+      "symbol": "ETH/USD",
+      "score": 26.01,
       "trend": 0.0,
-      "momentum": 11.12,
+      "momentum": 13.27,
       "liquidity": 11.25,
       "wall_signal": true,
-      "price": 77909.24
-    },
-    {
-      "symbol": "NEAR/USDT",
-      "score": 18.56,
-      "trend": 0.0,
-      "momentum": 17.46,
-      "liquidity": 22.44,
-      "wall_signal": false,
-      "price": 4.378
-    },
-    {
-      "symbol": "ETH/USDT",
-      "score": 16.04,
-      "trend": 0.0,
-      "momentum": 15.03,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 2271.01
-    },
-    {
-      "symbol": "ETH/USD",
-      "score": 14.7,
-      "trend": 0.0,
-      "momentum": 15.07,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 2267.84
+      "price": 2255.64
     },
     {
       "symbol": "TRX/USDT",
-      "score": 13.59,
+      "score": 25.27,
       "trend": 0.0,
-      "momentum": 9.44,
-      "liquidity": 22.79,
+      "momentum": 13.51,
+      "liquidity": 22.87,
+      "wall_signal": true,
+      "price": 0.3127
+    },
+    {
+      "symbol": "ETH/USDT",
+      "score": 15.56,
+      "trend": 0.0,
+      "momentum": 13.25,
+      "liquidity": 11.25,
       "wall_signal": false,
-      "price": 0.31116
+      "price": 2258.4
     },
     {
       "symbol": "BTC/USDT",
-      "score": 12.36,
+      "score": 12.83,
       "trend": 0.0,
-      "momentum": 11.18,
-      "liquidity": 12.74,
+      "momentum": 11.09,
+      "liquidity": 11.96,
       "wall_signal": false,
-      "price": 78039.5
+      "price": 77781.9
+    },
+    {
+      "symbol": "BTC/USD",
+      "score": 11.68,
+      "trend": 0.0,
+      "momentum": 11.11,
+      "liquidity": 11.25,
+      "wall_signal": false,
+      "price": 77662.48
     },
     {
       "symbol": "SOL/USD",
-      "score": 12.17,
+      "score": 11.46,
       "trend": 0.0,
-      "momentum": 9.28,
-      "liquidity": 14.48,
+      "momentum": 9.09,
+      "liquidity": 14.13,
       "wall_signal": false,
-      "price": 94.94
+      "price": 93.8
     },
     {
       "symbol": "SOL/USDT",
-      "score": 11.42,
+      "score": 11.32,
       "trend": 0.0,
-      "momentum": 9.29,
+      "momentum": 9.09,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 95.09
+      "price": 93.92
     }
   ]
 }
