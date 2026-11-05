@@ -1,144 +1,135 @@
 {
-  "scan_time": "2026-11-05T00:45:33.279340+00:00",
-  "assets_scanned": 15,
+  "scan_time": "2026-11-05T11:54:34.378117+00:00",
+  "assets_scanned": 14,
   "signals_count": 0,
-  "duration_s": 20.95,
+  "duration_s": 22.27,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "XRP/USD",
-      "score": 53.76,
-      "trend": 56.24,
-      "momentum": 33.73,
-      "liquidity": 19.41,
+      "symbol": "ETH/USD",
+      "score": 64.85,
+      "trend": 82.18,
+      "momentum": 45.75,
+      "liquidity": 15.85,
       "wall_signal": true,
-      "price": 1.3071
+      "price": 2418.28
     },
     {
       "symbol": "BTC/USD",
-      "score": 53.44,
-      "trend": 61.31,
-      "momentum": 38.01,
-      "liquidity": 14.54,
+      "score": 51.4,
+      "trend": 55.96,
+      "momentum": 32.06,
+      "liquidity": 16.31,
       "wall_signal": true,
-      "price": 80697.7
-    },
-    {
-      "symbol": "UNI/USDT",
-      "score": 53.02,
-      "trend": 83.47,
-      "momentum": 52.54,
-      "liquidity": 20.1,
-      "wall_signal": false,
-      "price": 7.711
+      "price": 80271.0
     },
     {
       "symbol": "ETH/USDT",
-      "score": 50.84,
-      "trend": 82.51,
-      "momentum": 48.31,
-      "liquidity": 11.25,
+      "score": 48.22,
+      "trend": 82.17,
+      "momentum": 45.65,
+      "liquidity": 12.75,
       "wall_signal": false,
-      "price": 2428.26
+      "price": 2421.14
     },
     {
-      "symbol": "ETH/USD",
-      "score": 49.7,
-      "trend": 82.54,
-      "momentum": 48.51,
-      "liquidity": 14.05,
+      "symbol": "UNI/USDT",
+      "score": 46.32,
+      "trend": 81.42,
+      "momentum": 34.84,
+      "liquidity": 21.14,
       "wall_signal": false,
-      "price": 2426.29
+      "price": 7.439
     },
     {
-      "symbol": "BNB/USDT",
-      "score": 40.84,
-      "trend": 35.51,
-      "momentum": 27.47,
-      "liquidity": 28.19,
-      "wall_signal": true,
-      "price": 720.844
+      "symbol": "XRP/USD",
+      "score": 40.97,
+      "trend": 56.57,
+      "momentum": 38.86,
+      "liquidity": 20.35,
+      "wall_signal": false,
+      "price": 1.3187
     },
     {
       "symbol": "BTC/USDT",
-      "score": 40.4,
-      "trend": 61.3,
-      "momentum": 37.78,
-      "liquidity": 19.42,
+      "score": 38.38,
+      "trend": 55.95,
+      "momentum": 31.92,
+      "liquidity": 20.26,
       "wall_signal": false,
-      "price": 80794.6
-    },
-    {
-      "symbol": "SOL/USD",
-      "score": 38.83,
-      "trend": 15.0,
-      "momentum": 24.99,
-      "liquidity": 16.07,
-      "wall_signal": true,
-      "price": 95.87
+      "price": 80372.2
     },
     {
       "symbol": "XRP/USDT",
-      "score": 35.48,
-      "trend": 56.21,
-      "momentum": 33.49,
+      "score": 37.01,
+      "trend": 56.57,
+      "momentum": 38.75,
       "liquidity": 11.25,
       "wall_signal": false,
-      "price": 1.30817
-    },
-    {
-      "symbol": "SUI/USDT",
-      "score": 35.06,
-      "trend": 36.3,
-      "momentum": 37.9,
-      "liquidity": 24.51,
-      "wall_signal": false,
-      "price": 0.9332
+      "price": 1.3204
     },
     {
       "symbol": "DOGE/USDT",
-      "score": 32.75,
-      "trend": 35.6,
-      "momentum": 27.61,
-      "liquidity": 33.9,
+      "score": 32.43,
+      "trend": 35.0,
+      "momentum": 27.11,
+      "liquidity": 34.53,
       "wall_signal": false,
-      "price": 0.07715
+      "price": 0.07692
     },
     {
       "symbol": "SOL/USDT",
-      "score": 24.17,
-      "trend": 15.0,
-      "momentum": 24.9,
-      "liquidity": 16.21,
+      "score": 31.2,
+      "trend": 35.0,
+      "momentum": 27.74,
+      "liquidity": 17.17,
       "wall_signal": false,
-      "price": 95.99
+      "price": 96.53
     },
     {
-      "symbol": "NEAR/USD",
-      "score": 18.63,
-      "trend": 0.0,
-      "momentum": 24.21,
-      "liquidity": 18.96,
+      "symbol": "SOL/USD",
+      "score": 29.79,
+      "trend": 35.0,
+      "momentum": 27.85,
+      "liquidity": 16.26,
       "wall_signal": false,
-      "price": 4.0183
+      "price": 96.39
     },
     {
-      "symbol": "NEAR/USDT",
-      "score": 18.05,
-      "trend": 0.0,
-      "momentum": 23.99,
-      "liquidity": 24.73,
+      "symbol": "BNB/USDT",
+      "score": 29.77,
+      "trend": 35.0,
+      "momentum": 22.33,
+      "liquidity": 29.47,
       "wall_signal": false,
-      "price": 4.0241
+      "price": 716.695
     },
     {
       "symbol": "DOT/USDT",
-      "score": 17.94,
+      "score": 26.86,
       "trend": 15.0,
-      "momentum": 14.73,
+      "momentum": 12.81,
       "liquidity": 11.25,
+      "wall_signal": true,
+      "price": 0.9526
+    },
+    {
+      "symbol": "NEAR/USD",
+      "score": 24.58,
+      "trend": 0.0,
+      "momentum": 17.75,
+      "liquidity": 19.0,
+      "wall_signal": true,
+      "price": 4.0201
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "score": 16.63,
+      "trend": 0.0,
+      "momentum": 17.69,
+      "liquidity": 26.12,
       "wall_signal": false,
-      "price": 0.9524
+      "price": 4.0245
     }
   ]
 }
