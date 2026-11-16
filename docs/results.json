@@ -1,117 +1,99 @@
 {
-  "scan_time": "2026-11-15T20:51:12.292997+00:00",
-  "assets_scanned": 12,
+  "scan_time": "2026-11-16T05:00:35.271979+00:00",
+  "assets_scanned": 10,
   "signals_count": 0,
-  "duration_s": 21.09,
+  "duration_s": 19.58,
   "signals": [],
   "leaderboard": [
     {
-      "symbol": "ETH/USD",
-      "score": 29.15,
-      "trend": 0.0,
-      "momentum": 10.11,
-      "liquidity": 21.35,
-      "wall_signal": true,
-      "price": 1826.36
-    },
-    {
       "symbol": "BTC/USD",
-      "score": 27.94,
+      "score": 28.33,
       "trend": 0.0,
-      "momentum": 10.01,
-      "liquidity": 19.67,
+      "momentum": 9.98,
+      "liquidity": 20.28,
       "wall_signal": true,
-      "price": 65005.43
-    },
-    {
-      "symbol": "XLM/USDT",
-      "score": 17.8,
-      "trend": 0.0,
-      "momentum": 15.94,
-      "liquidity": 27.37,
-      "wall_signal": false,
-      "price": 0.1398
-    },
-    {
-      "symbol": "XRP/USD",
-      "score": 17.34,
-      "trend": 0.0,
-      "momentum": 12.17,
-      "liquidity": 28.29,
-      "wall_signal": false,
-      "price": 0.9615
+      "price": 64719.79
     },
     {
       "symbol": "DOGE/USDT",
-      "score": 16.9,
+      "score": 18.37,
       "trend": 0.0,
-      "momentum": 9.59,
-      "liquidity": 37.57,
+      "momentum": 9.62,
+      "liquidity": 38.92,
       "wall_signal": false,
-      "price": 0.05899
+      "price": 0.05876
+    },
+    {
+      "symbol": "XLM/USDT",
+      "score": 17.52,
+      "trend": 0.0,
+      "momentum": 13.29,
+      "liquidity": 29.98,
+      "wall_signal": false,
+      "price": 0.1395
+    },
+    {
+      "symbol": "XRP/USD",
+      "score": 16.29,
+      "trend": 0.0,
+      "momentum": 10.32,
+      "liquidity": 28.82,
+      "wall_signal": false,
+      "price": 0.9562
     },
     {
       "symbol": "XRP/USDT",
-      "score": 16.4,
+      "score": 15.52,
       "trend": 0.0,
-      "momentum": 12.03,
-      "liquidity": 27.35,
+      "momentum": 10.32,
+      "liquidity": 27.67,
       "wall_signal": false,
-      "price": 0.9616
-    },
-    {
-      "symbol": "LTC/USDT",
-      "score": 15.89,
-      "trend": 0.0,
-      "momentum": 10.16,
-      "liquidity": 25.69,
-      "wall_signal": false,
-      "price": 45.44
-    },
-    {
-      "symbol": "NEAR/USDT",
-      "score": 15.24,
-      "trend": 0.0,
-      "momentum": 17.31,
-      "liquidity": 17.31,
-      "wall_signal": false,
-      "price": 3.201
-    },
-    {
-      "symbol": "SOL/USD",
-      "score": 13.72,
-      "trend": 0.0,
-      "momentum": 9.52,
-      "liquidity": 17.93,
-      "wall_signal": false,
-      "price": 71.95
-    },
-    {
-      "symbol": "SOL/USDT",
-      "score": 13.35,
-      "trend": 0.0,
-      "momentum": 9.5,
-      "liquidity": 11.25,
-      "wall_signal": false,
-      "price": 72.01
-    },
-    {
-      "symbol": "BTC/USDT",
-      "score": 12.77,
-      "trend": 0.0,
-      "momentum": 10.0,
-      "liquidity": 17.88,
-      "wall_signal": false,
-      "price": 65047.3
+      "price": 0.95714
     },
     {
       "symbol": "ETH/USDT",
-      "score": 11.4,
+      "score": 14.29,
       "trend": 0.0,
-      "momentum": 10.1,
-      "liquidity": 11.25,
+      "momentum": 10.03,
+      "liquidity": 16.21,
       "wall_signal": false,
-      "price": 1827.68
+      "price": 1817.29
+    },
+    {
+      "symbol": "ETH/USD",
+      "score": 13.6,
+      "trend": 0.0,
+      "momentum": 10.04,
+      "liquidity": 21.86,
+      "wall_signal": false,
+      "price": 1815.45
+    },
+    {
+      "symbol": "SOL/USD",
+      "score": 13.24,
+      "trend": 0.0,
+      "momentum": 9.83,
+      "liquidity": 18.73,
+      "wall_signal": false,
+      "price": 71.43
+    },
+    {
+      "symbol": "SOL/USDT",
+      "score": 12.89,
+      "trend": 0.0,
+      "momentum": 9.89,
+      "liquidity": 15.92,
+      "wall_signal": false,
+      "price": 71.51
+    },
+    {
+      "symbol": "BTC/USDT",
+      "score": 11.75,
+      "trend": 0.0,
+      "momentum": 9.98,
+      "liquidity": 19.08,
+      "wall_signal": false,
+      "price": 64795.6
     }
   ]
 }
